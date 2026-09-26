@@ -120,8 +120,13 @@ def cmd_config(args, catalog):
             if args.key not in st.DEFAULT_CONFIG:
                 sys.exit(f"unknown key {args.key}; keys: {', '.join(st.DEFAULT_CONFIG)}")
             if args.value is not None:
-                old = cfg[args.key]
-                cfg[args.key] = args.value if isinstance(old, str) or old is None else type(old)(args.value)
+                old, value = cfg[args.key], args.value
+                if value.lower() in ("none", "off"):
+                    cfg[args.key] = None
+                elif isinstance(old, (int, float)) or (old is None and value.lstrip("-").isdigit()):
+                    cfg[args.key] = int(value) if value.lstrip("-").isdigit() else float(value)
+                else:
+                    cfg[args.key] = value
         for k, v in cfg.items():
             print(f"{k} = {v}")
 

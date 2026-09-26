@@ -34,8 +34,8 @@ New
   and doing problems in topic order hides that part.
 - **New problems** include the topic, NeetCode and LeetCode links, and the video link for after a
   real 30 to 40 minute attempt.
-- **Saturdays** swap one new problem for a mock: an unseen medium from a topic I've mostly
-  covered, 25 minute timer, talking out loud.
+- **Mocks** are off by default. `lc config mock_weekday 5` makes Saturdays swap one new problem
+  for an unseen medium from a topic I've mostly covered, with the topic hidden.
 - **Checking the task off** records every problem on it as done. `lc skip` puts back one I didn't
   actually get to. If I don't check it off, tomorrow's task is the same task, rewritten with
   today's leftovers plus whatever slots are still free.
@@ -73,8 +73,8 @@ The base is 2 redos and 2 new problems.
 - Three days' worth of redos due: a catch-up day with no new problems.
 - A quiet day with nothing due pulls in redos due in the next 3 days, which flattens later spikes.
 - Anything left over from earlier days counts toward today's slots instead of stacking on top.
-- An interview within 10 days switches to cram mode: 1 new problem, an extra redo slot, shaky
-  problems (last graded again or hard) pulled forward, and a mock every other day.
+- An interview within 10 days switches to cram mode: 1 new problem, an extra redo slot, and
+  shaky problems (last graded again or hard) pulled forward.
 
 ### Which new problem is next
 

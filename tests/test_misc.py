@@ -117,6 +117,8 @@ def test_cli_offline_commands(tmp_path, monkeypatch, capsys):
     main(["log", "two sum", "-g", "easy", "--offline", "--date", "2026-09-26", "-i", "complement map"])
     main(["interview", "add", "Acme", "2026-10-20"])
     main(["config", "new_per_day", "3"])
+    main(["config", "mock_weekday", "5"])
+    main(["config", "mock_weekday", "off"])
     main(["status"])
     main(["sheet"])
     main(["report"])
@@ -124,6 +126,7 @@ def test_cli_offline_commands(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "logged: Two Sum = easy" in out
     assert "new_per_day = 3" in out
+    assert "mock_weekday = 5" in out and out.rstrip().count("mock_weekday = None") >= 1
     assert "next interview: Acme on 2026-10-20" in out
     assert "complement map" in out
 

@@ -154,6 +154,7 @@ def test_dry_run_touches_nothing(state, catalog, todoist):
 def test_saturday_mock_in_task(state, catalog, todoist):
     arrays = [p.name for p in catalog.problems if p.topic == "Arrays & Hashing" and p.tier == 1]
     seed(state, catalog, arrays, SAT - timedelta(days=1), interval=40)
+    state["config"]["mock_weekday"] = 5
     sync(state, catalog, todoist, SAT)
     t = only_task(todoist)
     assert "mock" in t["content"] and "**Mock interview**" in t["description"]
@@ -175,3 +176,11 @@ def test_render_redo_notes(state, catalog):
     st.add_event(state, "attempt", p.id, MON, grade="again", video=True)
     _, desc = render_daily([("review", p.id, str(SUN))], catalog, st.cards(state), TUE)
     assert "redo #2, last time (Sep 28) you needed the video (rolled over from Sep 27)" in desc
+
+
+def test_no_mock_by_default_on_saturday(state, catalog, todoist):
+    arrays = [p.name for p in catalog.problems if p.topic == "Arrays & Hashing" and p.tier == 1]
+    seed(state, catalog, arrays, SAT - timedelta(days=1), interval=40)
+    sync(state, catalog, todoist, SAT)
+    t = only_task(todoist)
+    assert "mock" not in t["content"].lower() and "Mock" not in t["description"]

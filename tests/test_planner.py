@@ -23,13 +23,21 @@ def test_quiet_day_pulls_upcoming_redos():
     assert t.review == 2
 
 
-def test_saturday_mock_replaces_a_new_problem():
+MOCKS = {**CFG, "mock_weekday": 5}
+
+
+def test_no_mocks_by_default():
     t = planner.targets(CFG, 2, SAT)
+    assert (t.review, t.new, t.mock) == (2, 2, 0)
+
+
+def test_saturday_mock_when_turned_on():
+    t = planner.targets(MOCKS, 2, SAT)
     assert (t.review, t.new, t.mock) == (2, 1, 1)
 
 
 def test_no_mock_on_catch_up_day():
-    t = planner.targets(CFG, 20, SAT)
+    t = planner.targets(MOCKS, 20, SAT)
     assert t.mock == 0 and t.new == 0
 
 
