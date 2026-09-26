@@ -1,0 +1,9 @@
+[project]
+name = "leetcode-coach"
+version = "1.0.0"
+description = "Spaced repetition LeetCode coach that plans each day's problems in Todoist"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

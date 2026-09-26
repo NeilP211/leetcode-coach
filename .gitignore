@@ -1,0 +1,5 @@
+__pycache__/
+.pytest_cache/
+*.lock
+*.tmp
+data/*.private.json
