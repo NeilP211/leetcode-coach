@@ -108,8 +108,8 @@ class Todoist:
 
 def task_status(task):
     """'open', 'done' or 'gone' for a task dict from get_task (None is gone)."""
-    if task is None or task.get("is_deleted"):
+    if task is None:
         return "gone"
     if task.get("checked") or task.get("completed_at"):
-        return "done"
-    return "open"
+        return "done"  # checked off then deleted still counts as done
+    return "gone" if task.get("is_deleted") else "open"

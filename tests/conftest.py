@@ -40,7 +40,7 @@ class FakeTodoist:
 
     def get_task(self, task_id):
         t = self.tasks.get(task_id)
-        return None if t is None or t["is_deleted"] else t
+        return t
 
     def create_task(self, content, description, due_date, priority, labels, project_id=None):
         tid = next(self.ids)

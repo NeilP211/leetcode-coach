@@ -50,7 +50,9 @@ def task_text(problem, kind, card=None):
             "Blank editor, no notes. Say the pattern and the key idea out loud before you code. "
             "Aim for 20 minutes.",
         ]
-        if card and card.last:
+        if card and card.attempts == 0:
+            lines.append("First redo since you solved it before this list started.")
+        elif card and card.last:
             how = GRADE_WORDS.get(card.last_grade, "solved it")
             lines.append(f"Redo #{card.attempts + 1}. Last time ({_fmt(card.last)}): {how}.")
         lines.append(links)

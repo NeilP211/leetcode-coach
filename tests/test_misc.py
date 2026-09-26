@@ -32,6 +32,7 @@ def test_task_status():
     assert task_status({"checked": True}) == "done"
     assert task_status({"completed_at": "2026-09-26T10:00:00Z"}) == "done"
     assert task_status({"checked": False}) == "open"
+    assert task_status({"checked": True, "is_deleted": True}) == "done"
 
 
 def test_client_needs_token():

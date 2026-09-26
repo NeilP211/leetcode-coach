@@ -136,3 +136,13 @@ def test_task_text_hides_topic_on_redos(catalog):
     assert desc.startswith("Stack.")
     content, desc = task_text(p, "mock")
     assert "Stack" not in content + desc and "25 minute" in desc
+
+
+def test_redo_text_for_old_solves_and_logged_ones(state, catalog):
+    p = catalog.find("Car Fleet")
+    st.add_event(state, "seed", p.id, SUN, interval=7)
+    _, desc = task_text(p, "review", st.cards(state)[p.id])
+    assert "before this list started" in desc
+    st.add_event(state, "attempt", p.id, MON, grade="again", video=True)
+    _, desc = task_text(p, "review", st.cards(state)[p.id])
+    assert "Redo #2. Last time (Sep 28): needed the video." in desc
