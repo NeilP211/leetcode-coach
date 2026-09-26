@@ -50,9 +50,18 @@ class FakeTodoist:
         self.calls.append(("create", tid))
         return self.tasks[tid]
 
-    def set_due(self, task_id, due_date):
-        self.tasks[task_id]["due"] = {"date": due_date}
-        self.calls.append(("due", task_id, due_date))
+    def update_task(self, task_id, content=None, description=None, due_date=None):
+        t = self.tasks[task_id]
+        if content is not None:
+            t["content"] = content
+        if description is not None:
+            t["description"] = description
+        if due_date is not None:
+            t["due"] = {"date": due_date}
+        self.calls.append(("update", task_id))
+
+    def open_tasks(self):
+        return [t for t in self.tasks.values() if not t["checked"] and not t["is_deleted"]]
 
     def close_task(self, task_id):
         self.complete(task_id, None)

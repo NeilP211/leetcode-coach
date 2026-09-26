@@ -32,12 +32,14 @@ EMPTY = {
     "version": 1,
     "config": DEFAULT_CONFIG,
     "events": [],
-    "tasks": {},
+    "assignments": {},
+    "daily": {},
     "days": {},
     "interviews": [],
     "insights": {},
     "sessions": [],
     "next_seq": 1,
+    "next_aid": 1,
 }
 
 
@@ -99,8 +101,8 @@ def cards(state):
     return srs.replay(state["events"], state["config"]["max_interval"])
 
 
-def open_tasks(state):
-    return {tid: t for tid, t in state["tasks"].items() if t["status"] == "open"}
+def open_assignments(state):
+    return {aid: a for aid, a in state["assignments"].items() if a["status"] == "open"}
 
 
 def next_interview(state, today):

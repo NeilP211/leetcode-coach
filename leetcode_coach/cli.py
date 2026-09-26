@@ -9,7 +9,7 @@ from pathlib import Path
 from . import report
 from . import state as st
 from .catalog import Catalog
-from .debrief import log_attempt
+from .debrief import log_attempt, skip
 from .srs import GRADES
 from .sync import sync
 from .todoist import Todoist, load_token
@@ -44,7 +44,7 @@ def cmd_sync(args, catalog):
     for line in log:
         print(line)
     if args.dry_run:
-        for kind, pid, _ in created:
+        for kind, pid in created:
             print(f"would add {kind}: {catalog[pid].name}")
     print(f"targets: {targets['review']} redo, {targets['new']} new, {targets['mock']} mock"
           + (f" ({targets['reason']})" if targets.get("reason") else ""))
@@ -57,10 +57,23 @@ def cmd_more(args, catalog):
 
 def cmd_log(args, catalog):
     with st.locked() as state:
-        msg = log_attempt(state, catalog, None if args.offline else client(), args.problem,
-                          grade=args.grade, when=_date(args.date), video=args.video,
-                          minutes=args.minutes, notes=args.notes, insight=args.insight)
+        msg = log_attempt(state, catalog, args.problem, grade=args.grade, when=_date(args.date),
+                          video=args.video, minutes=args.minutes, notes=args.notes,
+                          insight=args.insight)
     print(msg)
+    _resync(args)
+
+
+def cmd_skip(args, catalog):
+    with st.locked() as state:
+        print(skip(state, catalog, args.problem, _date(args.date)))
+    _resync(args)
+
+
+def _resync(args):
+    """Refresh the daily task after a change, unless told to stay offline."""
+    if not args.offline:
+        cmd_sync(argparse.Namespace(dry_run=False, date=None), Catalog.load())
 
 
 def cmd_status(args, catalog):
@@ -77,7 +90,7 @@ def cmd_next(args, catalog):
     from . import planner
     state = st.load()
     cards = st.cards(state)
-    busy = {i["problem"] for i in st.open_tasks(state).values()}
+    busy = {a["problem"] for a in st.open_assignments(state).values()}
     queue = planner.new_queue(catalog, cards, busy, sum(1 for c in cards.values() if c.seen))
     for p in queue[: args.n]:
         print(f"{p.name:50} {p.difficulty:7} {p.topic}")
@@ -174,8 +187,14 @@ def main(argv=None):
     p.add_argument("-n", "--notes")
     p.add_argument("-i", "--insight", help="one line key insight")
     p.add_argument("--date")
-    p.add_argument("--offline", action="store_true", help="do not touch Todoist")
+    p.add_argument("--offline", action="store_true", help="do not sync Todoist afterwards")
     p.set_defaults(fn=cmd_log)
+
+    p = sub.add_parser("skip", help="a problem on a checked-off list was not actually done")
+    p.add_argument("problem")
+    p.add_argument("--date")
+    p.add_argument("--offline", action="store_true")
+    p.set_defaults(fn=cmd_skip)
 
     p = sub.add_parser("status", help="today, progress by topic, what is coming")
     p.add_argument("--json", action="store_true")

@@ -1,24 +1,30 @@
 """Keeps Todoist in step with the plan.
 
-One sync does four things, in order:
+Each day's problems are "assignments" tracked here, and Todoist gets exactly
+one task per day that lists all of them. One sync does five things:
 
-1. Checks every task it created that is still open in its books. Completed
-   ones become attempts in the event log (unrated until a debrief says how
-   it went). Deleted ones are dropped and the problem goes back in the pool.
-2. Moves anything still open from an earlier day onto today, so a problem
+1. Looks at the daily task. If it was checked off, every open assignment on
+   it becomes an attempt in the event log (unrated until a debrief says how
+   it went). If it was deleted without being checked, nothing is lost: its
+   problems stay open and roll into the next list.
+2. Rolls every open assignment from earlier days into today, so a problem
    keeps showing up until it is done.
 3. Works out today's targets once and freezes them, so running sync again
    later in the day never piles on more work.
-4. Tops up whatever slots today still has open with new tasks.
+4. Tops up whatever slots today still has open.
+5. Writes the one daily task: creates it, rewrites it in place, or closes it
+   once a debrief has logged everything on it.
 """
 
-from datetime import date, datetime
+import hashlib
+from datetime import date, datetime, timedelta
 
 from . import planner
 from . import state as st
 from .todoist import task_status
 
-PRIORITY = {"review": 4, "mock": 4, "new": 3}  # 4 shows as p1 in the app
+PRIORITY = 4  # shows as p1 in the app
+KIND_ORDER = {"review": 0, "new": 1, "mock": 2}
 
 
 def local_date(ts):
@@ -41,77 +47,113 @@ GRADE_WORDS = {
 }
 
 
-def task_text(problem, kind, card=None):
-    """(content, description) for a Todoist task."""
-    links = f"LeetCode: {problem.leetcode}"
-    if kind == "review":
-        content = f"Redo: [{problem.name}]({problem.neetcode})"
-        lines = [
-            "Blank editor, no notes. Say the pattern and the key idea out loud before you code. "
-            "Aim for 20 minutes.",
-        ]
-        if card and card.attempts == 0:
-            lines.append("First redo since you solved it before this list started.")
-        elif card and card.last:
-            how = GRADE_WORDS.get(card.last_grade, "solved it")
-            lines.append(f"Redo #{card.attempts + 1}. Last time ({_fmt(card.last)}): {how}.")
-        lines.append(links)
-    elif kind == "mock":
-        content = f"Mock interview: [{problem.name}]({problem.neetcode}) ({problem.difficulty})"
-        lines = [
-            "25 minute timer, talk out loud the whole time. The topic is hidden on purpose: "
-            "figuring out the pattern is part of the test.",
-            "Clarify the problem, give a brute force, improve it, code it, then walk a test case.",
-            links,
-        ]
-    else:
-        content = f"New: [{problem.name}]({problem.neetcode}) ({problem.difficulty})"
-        lines = [
-            f"{problem.topic}. Give it a real 30 to 40 minutes on your own first. If you need "
-            "the video, watch it, close it, then write the solution from scratch. Finish with a "
-            "one line key insight.",
-            links,
-        ]
-        if problem.video:
-            lines.append(f"Video (only after a real attempt): {problem.video}")
-    return content, "\n\n".join(lines)
+def _plural(n, word):
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
+def redo_note(card):
+    if card is None or card.attempts == 0:
+        return "first redo since you solved it before this list started"
+    how = GRADE_WORDS.get(card.last_grade, "solved it")
+    return f"redo #{card.attempts + 1}, last time ({_fmt(card.last)}) you {how}"
+
+
+def render_daily(items, catalog, cards, day, done_names=()):
+    """(content, description) for the day's single task.
+
+    items: [(kind, problem_id, since_date)] still to do, in display order.
+    """
+    counts = {k: sum(1 for i in items if i[0] == k) for k in KIND_ORDER}
+    parts = []
+    if counts["review"]:
+        parts.append(_plural(counts["review"], "redo"))
+    if counts["new"]:
+        parts.append(f"{counts['new']} new")
+    if counts["mock"]:
+        parts.append("mock")
+    content = f"LeetCode {_fmt(day)}: " + ", ".join(parts)
+
+    minutes = 20 * counts["review"] + 40 * counts["new"] + 30 * counts["mock"]
+    lines = [f"About {minutes} minutes. Redos first while you are fresh, then new problems."]
+    n = 0
+
+    def rolled(since):
+        return f" (rolled over from {_fmt(date.fromisoformat(since))})" if since != str(day) else ""
+
+    reviews = [i for i in items if i[0] == "review"]
+    if reviews:
+        lines += ["", "**Redos** (topic hidden on purpose: spotting the pattern cold is the point)",
+                  "Blank editor, no notes. Say the pattern and key idea out loud before coding. "
+                  "Aim for 20 minutes each."]
+        for _, pid, since in reviews:
+            n += 1
+            p = catalog[pid]
+            lines.append(f"{n}. [{p.name}]({p.neetcode}), {p.difficulty}: "
+                         f"{redo_note(cards.get(pid))}{rolled(since)}")
+
+    news = [i for i in items if i[0] == "new"]
+    if news:
+        lines += ["", "**New**",
+                  "Give each a real 30 to 40 minutes on your own. If you need the video, watch it, "
+                  "close it, then write it from scratch. End with a one line key insight."]
+        for _, pid, since in news:
+            n += 1
+            p = catalog[pid]
+            video = f", [video]({p.video}) after a real attempt" if p.video else ""
+            lines.append(f"{n}. [{p.name}]({p.neetcode}), {p.difficulty}, {p.topic}"
+                         f"{rolled(since)} ([LeetCode]({p.leetcode}){video})")
+
+    mocks = [i for i in items if i[0] == "mock"]
+    for _, pid, since in mocks:
+        n += 1
+        p = catalog[pid]
+        lines += ["", "**Mock interview**",
+                  f"{n}. [{p.name}]({p.neetcode}), {p.difficulty}{rolled(since)}. 25 minute timer, "
+                  "talk out loud the whole time. Unseen problem, topic hidden. Clarify, brute "
+                  "force, improve, code, walk a test case."]
+
+    if done_names:
+        lines += ["", "Already done today: " + ", ".join(done_names) + "."]
+    lines += ["", "Check this off when you finish, then debrief how each one went. "
+                  "Anything you skip rolls over to tomorrow."]
+    return content, "\n".join(lines)
+
+
+def _new_assignment(state, pid, kind, today):
+    aid = f"a{state['next_aid']}"
+    state["next_aid"] += 1
+    state["assignments"][aid] = {"problem": pid, "kind": kind, "assigned": str(today),
+                                 "status": "open"}
+    return aid
 
 
 def reconcile(state, client, today):
-    """Record completions and deletions, carry leftovers to today. Returns a log list."""
+    """Read the daily task's fate and roll open work into today. Returns a log list."""
     log = []
-    tracked = st.open_tasks(state)
-    if not tracked:
-        return log
-    active = {t["id"]: t for t in client.active_tasks(state["config"]["label"])}
-    for tid, info in tracked.items():
-        if tid in active:
-            continue
-        task = client.get_task(tid)
+    daily = state["daily"]
+    if daily.get("task"):
+        task = client.get_task(daily["task"])
         status = task_status(task)
-        if status == "open":
-            active[tid] = task  # open but lost its label, keep tracking
-            continue
-        info["status"] = status
         if status == "done":
             when = local_date(task.get("completed_at")) or today
-            info["done_on"] = str(when)
-            st.add_event(state, "attempt", info["problem"], when,
-                         mode=info["kind"], source="todoist", task=tid)
-            log.append(f"done: {info['problem']} ({info['kind']}) on {when}")
-        else:
-            log.append(f"deleted in Todoist: {info['problem']} ({info['kind']})")
+            for aid in daily.get("assignments", []):
+                a = state["assignments"].get(aid)
+                if a and a["status"] == "open":
+                    a["status"], a["done_on"] = "done", str(when)
+                    st.add_event(state, "attempt", a["problem"], when, mode=a["kind"],
+                                 source="todoist", assignment=aid)
+                    log.append(f"done: {a['problem']} ({a['kind']}) on {when}")
+            state["daily"] = {"completed_on": str(when)}
+        elif status == "gone":
+            log.append("daily task was deleted; its problems roll over")
+            state["daily"] = {}
 
-    day = state["days"].setdefault(str(today), {"tasks": []})
-    for tid, info in st.open_tasks(state).items():
-        task = active.get(tid, {})
-        due = (task.get("due") or {}).get("date", info.get("due"))
-        if due and due[:10] < str(today):
-            client.set_due(tid, str(today))
-            info["due"] = str(today)
-            log.append(f"carried over: {info['problem']}")
-        if tid not in day["tasks"]:
-            day["tasks"].append(tid)
+    day = state["days"].setdefault(str(today), {"assignments": []})
+    for aid, a in st.open_assignments(state).items():
+        if aid not in day["assignments"]:
+            day["assignments"].append(aid)
+            if a["assigned"] < str(today):
+                log.append(f"rolled over: {a['problem']}")
     return log
 
 
@@ -122,7 +164,7 @@ def plan_today(state, catalog, today, extra_new=0):
     """
     cards = st.cards(state)
     interview = st.next_interview(state, today)
-    day = state["days"].setdefault(str(today), {"tasks": []})
+    day = state["days"].setdefault(str(today), {"assignments": []})
     if "targets" not in day:
         due = len(planner.due_cards(cards, today))
         soon = len(planner.due_cards(cards, today, planner.LOOKAHEAD_DAYS))
@@ -131,12 +173,12 @@ def plan_today(state, catalog, today, extra_new=0):
     t = day["targets"]
 
     have = {"review": 0, "new": 0, "mock": 0}
-    for tid in day["tasks"]:
-        info = state["tasks"].get(tid)
-        if info:
-            have[info["kind"]] += 1
+    for aid in day["assignments"]:
+        a = state["assignments"].get(aid)
+        if a and a["status"] != "gone":
+            have[a["kind"]] += 1
 
-    busy = {info["problem"] for info in st.open_tasks(state).values()}
+    busy = {a["problem"] for a in st.open_assignments(state).values()}
     cram = "cram" in t.get("reason", "")
     intro = sum(1 for c in cards.values() if c.seen)
     adds = []
@@ -156,30 +198,68 @@ def plan_today(state, catalog, today, extra_new=0):
     return t, adds
 
 
+def todays_items(state, today):
+    """Open assignments on today's list, redos first."""
+    day = state["days"].get(str(today), {"assignments": []})
+    items = []
+    for aid in day["assignments"]:
+        a = state["assignments"].get(aid)
+        if a and a["status"] == "open":
+            items.append((a["kind"], a["problem"], a["assigned"]))
+    return sorted(items, key=lambda i: (KIND_ORDER[i[0]], i[2]))
+
+
+def publish(state, catalog, client, today, force_today=False):
+    """Create, rewrite or close the single daily task to match today's open work."""
+    items = todays_items(state, today)
+    daily = state["daily"]
+    log = []
+    if not items:
+        if daily.get("task"):
+            client.close_task(daily["task"])
+            state["daily"] = {"completed_on": str(today)}
+            log.append("everything logged, closed the daily task")
+        return log
+
+    # Work reopened after today's task was already checked off waits for tomorrow,
+    # unless it was explicitly asked for today.
+    due = today
+    if daily.get("completed_on") == str(today) and not daily.get("task") and not force_today:
+        due = today + timedelta(days=1)
+    day = state["days"][str(today)]
+    done = [catalog[state["assignments"][aid]["problem"]].name for aid in day["assignments"]
+            if state["assignments"].get(aid, {}).get("status") == "done"]
+    content, desc = render_daily(items, catalog, st.cards(state), due, done)
+    digest = hashlib.sha256(f"{content}\n{desc}\n{due}".encode()).hexdigest()[:16]
+    aids = [aid for aid in day["assignments"] if state["assignments"][aid]["status"] == "open"]
+
+    if daily.get("task"):
+        if daily.get("digest") != digest:
+            client.update_task(daily["task"], content=content, description=desc, due_date=str(due))
+            log.append(f"updated daily task: {content}")
+    else:
+        task = client.create_task(content, desc, str(due), PRIORITY,
+                                  [state["config"]["label"]], state["config"]["project_id"])
+        daily = state["daily"] = {"task": task["id"]}
+        log.append(f"created daily task: {content}")
+    daily.update({"date": str(due), "digest": digest, "assignments": aids})
+    return log
+
+
 def sync(state, catalog, client, today=None, extra_new=0, dry_run=False):
     today = today or date.today()
     log = [] if dry_run else reconcile(state, client, today)
+    if dry_run:
+        state["days"].setdefault(str(today), {"assignments": []})
     targets, adds = plan_today(state, catalog, today, extra_new)
-    cards = st.cards(state)
     created = []
     for kind, pid in adds:
-        problem = catalog[pid]
-        content, desc = task_text(problem, kind, cards.get(pid))
-        if dry_run:
-            created.append((kind, pid, None))
-            continue
-        task = client.create_task(
-            content, desc, str(today), PRIORITY[kind],
-            [state["config"]["label"]], state["config"]["project_id"],
-        )
-        tid = task["id"]
-        state["tasks"][tid] = {
-            "problem": pid, "kind": kind, "assigned": str(today),
-            "due": str(today), "status": "open",
-        }
-        state["days"][str(today)]["tasks"].append(tid)
-        created.append((kind, pid, tid))
-        log.append(f"added {kind}: {problem.name}")
+        created.append((kind, pid))
+        if not dry_run:
+            aid = _new_assignment(state, pid, kind, today)
+            state["days"][str(today)]["assignments"].append(aid)
+            log.append(f"added {kind}: {catalog[pid].name}")
     if not dry_run:
+        log += publish(state, catalog, client, today, force_today=extra_new > 0)
         st.prune_days(state, today)
     return targets, created, log

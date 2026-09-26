@@ -64,14 +64,13 @@ def summary(state, catalog, today):
 
 def status_data(state, catalog, today):
     cards = st.cards(state)
-    today_ids = state["days"].get(str(today), {}).get("tasks", [])
+    today_ids = state["days"].get(str(today), {}).get("assignments", [])
     todays = []
-    for tid in today_ids:
-        info = state["tasks"].get(tid)
-        if info:
-            todays.append({"task": tid, "kind": info["kind"], "status": info["status"],
-                           "problem": catalog[info["problem"]].name,
-                           "since": info["assigned"]})
+    for aid in today_ids:
+        a = state["assignments"].get(aid)
+        if a:
+            todays.append({"assignment": aid, "kind": a["kind"], "status": a["status"],
+                           "problem": catalog[a["problem"]].name, "since": a["assigned"]})
     ahead = {}
     for c in cards.values():
         if c.due and not c.retired and today < c.due <= today + timedelta(days=7):
@@ -85,7 +84,7 @@ def status_data(state, catalog, today):
         "unrated": unrated(state, catalog, today=today),
         "due_next_7_days": dict(sorted(ahead.items())),
         "next_new": [p.name for p in planner.new_queue(
-            catalog, cards, {i["problem"] for i in st.open_tasks(state).values()},
+            catalog, cards, {a["problem"] for a in st.open_assignments(state).values()},
             sum(1 for c in cards.values() if c.seen))[:5]],
         "interview": st.next_interview(state, today),
         "topics": topic_rows(catalog, cards),

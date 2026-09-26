@@ -96,8 +96,8 @@ class Todoist:
             body["project_id"] = project_id
         return self._call("POST", "/tasks", body=body)
 
-    def set_due(self, task_id, due_date):
-        return self._call("POST", f"/tasks/{task_id}", body={"due_date": due_date})
+    def update_task(self, task_id, **fields):
+        return self._call("POST", f"/tasks/{task_id}", body=fields)
 
     def close_task(self, task_id):
         return self._call("POST", f"/tasks/{task_id}/close", body={})

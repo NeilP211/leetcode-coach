@@ -3,10 +3,10 @@
 [![tests](https://github.com/NeilP211/leetcode-coach/actions/workflows/test.yml/badge.svg)](https://github.com/NeilP211/leetcode-coach/actions/workflows/test.yml)
 
 A spaced repetition coach for the [NeetCode 250](https://neetcode.io/practice/practice/neetcode250).
-Every morning it puts that day's exact problems on my Todoist: a couple of redos of problems I
-am about to forget, plus the next new problems on the roadmap. Anything I don't finish stays on
-the list until it's done. After a session I log how each problem went (clean, a fight, needed
-the video), and that decides when each one comes back.
+Every morning it puts one task on my Todoist with that day's exact problems: a couple of redos of
+problems I am about to forget, plus the next new problems on the roadmap. Anything I don't finish
+rolls into the next day's task until it's done. After a session I log how each problem went
+(clean, a fight, needed the video), and that decides when each one comes back.
 
 The point: doing a problem once and moving on doesn't stick. Problems I needed the video for
 come back two days later, from a blank editor. Problems I get clean come back less and less
@@ -14,19 +14,31 @@ often until they stick for three weeks or more.
 
 ## A day on the list
 
+One task, everything in the description:
+
 ```
-Redo: Search In Rotated Sorted Array            p1
-Redo: Reorder List                              p1
-New:  Minimum Window Substring (Hard)           p2
-New:  Sliding Window Maximum (Hard)             p2
+LeetCode Sep 27: 2 redos, 2 new                                    p1
+
+About 120 minutes. Redos first while you are fresh, then new problems.
+
+Redos (topic hidden on purpose: spotting the pattern cold is the point)
+1. Search In Rotated Sorted Array, Medium: redo #2, last time (Sep 25) you needed the video
+2. Reorder List, Medium: first redo since you solved it before this list started
+
+New
+3. Sliding Window Maximum, Hard, Sliding Window (LeetCode, video after a real attempt)
+4. Time Based Key Value Store, Medium, Binary Search (rolled over from Sep 26)
 ```
 
 - **Redos** hide the topic on purpose. Spotting the pattern cold is half of a real interview,
   and doing problems in topic order hides that part.
-- **New problems** follow the roadmap and include the topic, NeetCode and LeetCode links, and the
-  video link for after a real 30 to 40 minute attempt.
+- **New problems** include the topic, NeetCode and LeetCode links, and the video link for after a
+  real 30 to 40 minute attempt.
 - **Saturdays** swap one new problem for a mock: an unseen medium from a topic I've mostly
   covered, 25 minute timer, talking out loud.
+- **Checking the task off** records every problem on it as done. `lc skip` puts back one I didn't
+  actually get to. If I don't check it off, tomorrow's task is the same task, rewritten with
+  today's leftovers plus whatever slots are still free.
 
 ## How it decides
 
@@ -60,7 +72,7 @@ The base is 2 redos and 2 new problems.
   the roadmap keeps moving.
 - Three days' worth of redos due: a catch-up day with no new problems.
 - A quiet day with nothing due pulls in redos due in the next 3 days, which flattens later spikes.
-- Anything left open from earlier days counts toward today's slots instead of stacking on top.
+- Anything left over from earlier days counts toward today's slots instead of stacking on top.
 - An interview within 10 days switches to cram mode: 1 new problem, an extra redo slot, shaky
   problems (last graded again or hard) pulled forward, and a mock every other day.
 
@@ -85,6 +97,7 @@ lc                         status: today's list, what's due, progress by topic
 lc sync                    record completed tasks and fill today's list
 lc log "koko" -g again -v -m 45 -i "binary search on the answer, check feasibility"
 lc log 146 -g good         problems resolve by name, fuzzy name, or LeetCode number
+lc skip "lru"              checked the day off but didn't do this one: back on the list
 lc more 1                  one more new problem today
 lc show "lru cache"        history and saved insight for one problem
 lc next 10                 preview the new problem queue
@@ -95,8 +108,9 @@ lc retire "two sum"        stop scheduling redos of something trivial
 lc import-neetcode         pick up problems checked off on neetcode.io
 ```
 
-`lc log` finds the attempt Todoist already recorded and rates it, or closes the open task if I
-didn't check it off. A video means `again` unless I say otherwise.
+`lc log` rates the attempt that checking off the task already recorded, or marks the problem
+done if the task is still open, then rewrites the daily task (or closes it once everything on it
+is logged). A video means `again` unless I say otherwise.
 
 ## Setup
 
