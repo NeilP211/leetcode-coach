@@ -1,0 +1,8 @@
+#!/bin/sh
+# Runs leetcode-coach from wherever the repo lives, following symlinks.
+self="$0"
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case "$link" in /*) self="$link" ;; *) self="$(dirname "$self")/$link" ;; esac
+done
+cd "$(dirname "$self")/.." && exec python3 -m leetcode_coach "$@"
