@@ -1,0 +1,130 @@
+# leetcode-coach
+
+[![tests](https://github.com/NeilP211/leetcode-coach/actions/workflows/test.yml/badge.svg)](https://github.com/NeilP211/leetcode-coach/actions/workflows/test.yml)
+
+A spaced repetition coach for the [NeetCode 250](https://neetcode.io/practice/practice/neetcode250).
+Every morning it puts that day's exact problems on my Todoist: a couple of redos of problems I
+am about to forget, plus the next new problems on the roadmap. Anything I don't finish stays on
+the list until it's done. After a session I log how each problem went (clean, a fight, needed
+the video), and that decides when each one comes back.
+
+The point: doing a problem once and moving on doesn't stick. Problems I needed the video for
+come back two days later, from a blank editor. Problems I get clean come back less and less
+often until they stick for three weeks or more.
+
+## A day on the list
+
+```
+Redo: Search In Rotated Sorted Array            p1
+Redo: Reorder List                              p1
+New:  Minimum Window Substring (Hard)           p2
+New:  Sliding Window Maximum (Hard)             p2
+```
+
+- **Redos** hide the topic on purpose. Spotting the pattern cold is half of a real interview,
+  and doing problems in topic order hides that part.
+- **New problems** follow the roadmap and include the topic, NeetCode and LeetCode links, and the
+  video link for after a real 30 to 40 minute attempt.
+- **Saturdays** swap one new problem for a mock: an unseen medium from a topic I've mostly
+  covered, 25 minute timer, talking out loud.
+
+## How it decides
+
+### When a problem comes back
+
+Every solve is an event in an append-only log (`data/state.json`). A problem's schedule is never
+stored; it is rebuilt by replaying its events, so rating a solve a day late or correcting a
+rating is just an edit and a replay.
+
+The scheduler is an SM-2 variant with four grades:
+
+| Grade | Meaning | Next redo |
+|---|---|---|
+| again | needed the video, or couldn't get it | 2 days |
+| hard | got it, but with a hint, bugs, or way over time | first time 3 days, then gap x 1.2 |
+| good | got it on my own in normal time | first time 7 days, then gap x ease |
+| easy | instant | first time 14 days, then gap x ease x 1.3 |
+
+Ease starts at 2.5, drops on struggles and rises on easy solves, so a problem I keep fumbling
+comes back more often than one I always get. Gaps cap at 60 days during recruiting season, and
+redos done late get partial credit for the extra time they survived.
+
+New due dates are nudged within about 10 percent of the ideal gap onto the least loaded day, so
+problems solved on the same day don't all come back on the same day.
+
+### How much each day
+
+The base is 2 redos and 2 new problems.
+
+- More than 2 redos due: redos borrow new-problem slots, but at least one new problem stays so
+  the roadmap keeps moving.
+- Three days' worth of redos due: a catch-up day with no new problems.
+- A quiet day with nothing due pulls in redos due in the next 3 days, which flattens later spikes.
+- Anything left open from earlier days counts toward today's slots instead of stacking on top.
+- An interview within 10 days switches to cram mode: 1 new problem, an extra redo slot, shaky
+  problems (last graded again or hard) pulled forward, and a mock every other day.
+
+### Which new problem is next
+
+1. **Core first.** The NeetCode 150 easies and mediums plus the hards that come up often
+   (Minimum Window Substring, Sliding Window Maximum, Merge K Sorted Lists, Serialize and
+   Deserialize Binary Tree, and a few more), topic by topic: Sliding Window, Binary Search, Linked
+   List, Trees, Tries, Heap, Backtracking, Graphs, 1-D DP, Advanced Graphs, 2-D DP.
+2. **Light topics mixed in.** After Heap, every 4th new problem comes from Intervals, Greedy, Bit
+   Manipulation or Math as a change of pace.
+3. **Weak topics get extra reps.** Each topic gets a score from the latest grade of every problem
+   in it. If a topic the roadmap has already moved past scores under 0.6, the next new problem is
+   an unseen one from that topic's extra 100, to practice the same pattern on something fresh.
+4. **Second pass.** Once the core is done: the remaining hards and the extras, then the warmup
+   easies.
+
+## Commands
+
+```
+lc                         status: today's list, what's due, progress by topic
+lc sync                    record completed tasks and fill today's list
+lc log "koko" -g again -v -m 45 -i "binary search on the answer, check feasibility"
+lc log 146 -g good         problems resolve by name, fuzzy name, or LeetCode number
+lc more 1                  one more new problem today
+lc show "lru cache"        history and saved insight for one problem
+lc next 10                 preview the new problem queue
+lc sheet                   every saved one line insight, grouped by topic
+lc interview add Acme 2026-10-20
+lc config new_per_day 3
+lc retire "two sum"        stop scheduling redos of something trivial
+lc import-neetcode         pick up problems checked off on neetcode.io
+```
+
+`lc log` finds the attempt Todoist already recorded and rates it, or closes the open task if I
+didn't check it off. A video means `again` unless I say otherwise.
+
+## Setup
+
+Python 3.10+, no dependencies.
+
+1. Todoist token (Settings, Integrations, Developer), stored in the macOS keychain:
+   ```
+   security add-generic-password -a "$USER" -s leetcode-coach-todoist -w "$(pbpaste)"
+   ```
+2. Link the command: `ln -s "$PWD/bin/lc" ~/.local/bin/lc`
+3. Import what's already done from an open NeetCode tab (needs Chrome's View, Developer, Allow
+   JavaScript from Apple Events):
+   ```
+   lc import-neetcode --seed --well "Arrays & Hashing" --recent "Two Pointers"
+   ```
+   Old solves are scheduled with a guessed gap by how well I know the topic, then spread so they
+   come back a couple a day.
+4. `scripts/install_launchd.sh` runs `scripts/daily.sh` at 6:00 and 17:00 (and on wake if the
+   Mac was asleep). It syncs, updates the progress table above, and pushes.
+
+`scripts/fetch_problems.py` rebuilds `data/problems.json` from neetcode.io, which ships the list
+inside its JavaScript bundle.
+
+Interview dates and free text session notes go in `data/state.private.json`, which is
+gitignored.
+
+## Tests
+
+```
+python3 -m pytest -q
+```
