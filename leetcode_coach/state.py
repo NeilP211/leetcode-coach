@@ -10,9 +10,9 @@ from pathlib import Path
 
 from . import srs
 
-STATE_FILE = Path(os.environ.get(
-    "LC_STATE", Path(__file__).resolve().parent.parent / "data" / "state.json"
-))
+# Progress is personal, so it lives outside the code repo (in its own private
+# git repo, see scripts/daily.sh). LC_STATE points somewhere else if needed.
+STATE_FILE = Path(os.environ.get("LC_STATE", Path.home() / ".leetcode-coach" / "state.json"))
 
 DEFAULT_CONFIG = {
     "review_per_day": 2,
@@ -23,10 +23,6 @@ DEFAULT_CONFIG = {
     "label": "leetcode",
     "project_id": None,  # None means the Inbox
 }
-
-# Kept in a gitignored side file so the public repo never shows who I am
-# interviewing with or my raw session notes.
-PRIVATE_KEYS = ("interviews", "sessions")
 
 EMPTY = {
     "version": 1,
@@ -47,34 +43,21 @@ def fresh():
     return copy.deepcopy(EMPTY)
 
 
-def private_path(path):
-    return Path(path).with_name(Path(path).stem + ".private.json")
-
-
 def load(path=None):
     path = Path(path or STATE_FILE)
     state = json.loads(path.read_text()) if path.exists() else fresh()
-    priv = private_path(path)
-    if priv.exists():
-        state.update(json.loads(priv.read_text()))
     for key, value in EMPTY.items():
         state.setdefault(key, copy.deepcopy(value))
     state["config"] = {**DEFAULT_CONFIG, **state["config"]}
     return state
 
 
-def _write(path, data):
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, indent=1) + "\n")
-    os.replace(tmp, path)
-
-
 def save(state, path=None):
     path = Path(path or STATE_FILE)
     path.parent.mkdir(parents=True, exist_ok=True)
-    public = {k: v for k, v in state.items() if k not in PRIVATE_KEYS}
-    _write(path, public)
-    _write(private_path(path), {k: state[k] for k in PRIVATE_KEYS})
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state, indent=1) + "\n")
+    os.replace(tmp, path)
 
 
 @contextmanager

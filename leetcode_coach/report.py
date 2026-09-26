@@ -1,14 +1,10 @@
 """Human readable views of the state: status, progress table, cheat sheet."""
 
-import re
 from datetime import date, timedelta
 
 from . import planner
 from . import state as st
 from .catalog import CORE, LIGHT_TRACK, MAIN_TRACK
-
-START, END = "<!-- progress:start -->", "<!-- progress:end -->"
-
 
 def bar(done, total, width=12):
     if not total:
@@ -143,16 +139,6 @@ def progress_markdown(state, catalog, today):
         lines.append(f"| {r['topic']} | {r['solved']}/{r['total']} | "
                      f"`{bar(r['solved'], r['total'])}` | {r['mastered']} |")
     return "\n".join(lines)
-
-
-def update_readme(path, block):
-    text = path.read_text()
-    new = re.sub(re.escape(START) + r".*?" + re.escape(END),
-                 f"{START}\n{block}\n{END}", text, flags=re.S)
-    if new != text:
-        path.write_text(new)
-        return True
-    return False
 
 
 def cheat_sheet(state, catalog):

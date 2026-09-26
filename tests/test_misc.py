@@ -1,4 +1,5 @@
 import importlib.util
+import os
 from pathlib import Path
 
 from conftest import SUN
@@ -75,13 +76,10 @@ def test_client_raises_on_error():
         raise AssertionError("expected TodoistError")
 
 
-def test_readme_block_replaced(tmp_path, state, catalog):
-    readme = tmp_path / "README.md"
-    readme.write_text(f"intro\n{report.START}\nold\n{report.END}\noutro\n")
+def test_progress_markdown(state, catalog):
     st.add_event(state, "attempt", catalog.find("two sum").id, SUN, grade="good")
-    assert report.update_readme(readme, report.progress_markdown(state, catalog, SUN))
-    text = readme.read_text()
-    assert "**1 / 250**" in text and "old" not in text and text.endswith("outro\n")
+    text = report.progress_markdown(state, catalog, SUN)
+    assert "**1 / 250**" in text and "| Arrays & Hashing | 1/22 |" in text
 
 
 def test_cheat_sheet_groups_by_topic(state, catalog):
@@ -121,6 +119,7 @@ def test_cli_offline_commands(tmp_path, monkeypatch, capsys):
     main(["config", "new_per_day", "3"])
     main(["status"])
     main(["sheet"])
+    main(["report"])
     main(["next", "3"])
     out = capsys.readouterr().out
     assert "logged: Two Sum = easy" in out
@@ -129,12 +128,7 @@ def test_cli_offline_commands(tmp_path, monkeypatch, capsys):
     assert "complement map" in out
 
 
-def test_interviews_and_notes_stay_private(tmp_path):
-    path = tmp_path / "state.json"
-    with st.locked(path) as s:
-        s["interviews"].append({"company": "Acme", "date": "2026-10-20", "notes": ""})
-        s["sessions"].append({"date": "2026-09-26", "text": "rough day"})
-    assert "Acme" not in path.read_text() and "rough" not in path.read_text()
-    again = st.load(path)
-    assert again["interviews"][0]["company"] == "Acme"
-    assert again["sessions"][0]["text"] == "rough day"
+def test_default_state_lives_outside_the_repo():
+    if "LC_STATE" not in os.environ:
+        assert st.STATE_FILE == Path.home() / ".leetcode-coach" / "state.json"
+    assert ROOT not in st.STATE_FILE.parents

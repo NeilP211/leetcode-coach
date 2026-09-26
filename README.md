@@ -44,7 +44,7 @@ New
 
 ### When a problem comes back
 
-Every solve is an event in an append-only log (`data/state.json`). A problem's schedule is never
+Every solve is an event in an append-only log (`~/.leetcode-coach/state.json`). A problem's schedule is never
 stored; it is rebuilt by replaying its events, so rating a solve a day late or correcting a
 rating is just an edit and a replay.
 
@@ -102,6 +102,7 @@ lc more 1                  one more new problem today
 lc show "lru cache"        history and saved insight for one problem
 lc next 10                 preview the new problem queue
 lc sheet                   every saved one line insight, grouped by topic
+lc report                  progress by topic as a markdown table
 lc interview add Acme 2026-10-20
 lc config new_per_day 3
 lc retire "two sum"        stop scheduling redos of something trivial
@@ -129,13 +130,14 @@ Python 3.10+, no dependencies.
    Old solves are scheduled with a guessed gap by how well I know the topic, then spread so they
    come back a couple a day.
 4. `scripts/install_launchd.sh` runs `scripts/daily.sh` at 6:00 and 17:00 (and on wake if the
-   Mac was asleep). It syncs, updates the progress table above, and pushes.
+   Mac was asleep).
+
+Progress stays out of this repo. It lives in `~/.leetcode-coach/state.json` (or wherever
+`LC_STATE` points), and if that folder is its own git repo, the daily run commits and pushes it
+there, so a private repo makes a good backup.
 
 `scripts/fetch_problems.py` rebuilds `data/problems.json` from neetcode.io, which ships the list
 inside its JavaScript bundle.
-
-Interview dates and free text session notes go in `data/state.private.json`, which is
-gitignored.
 
 ## Tests
 

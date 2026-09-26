@@ -4,7 +4,6 @@ import argparse
 import json
 import sys
 from datetime import date
-from pathlib import Path
 
 from . import report
 from . import state as st
@@ -13,8 +12,6 @@ from .debrief import log_attempt, skip
 from .srs import GRADES
 from .sync import sync
 from .todoist import Todoist, load_token
-
-README = Path(__file__).resolve().parent.parent / "README.md"
 
 SEED_DAYS = {  # guessed gaps for problems solved before this tool existed
     "well": {"Easy": 45, "Medium": 21, "Hard": 14},
@@ -40,7 +37,6 @@ def cmd_sync(args, catalog):
         with st.locked() as state:
             targets, created, log = sync(state, catalog, todoist, today,
                                          extra_new=getattr(args, "extra", 0))
-            report.update_readme(README, report.progress_markdown(state, catalog, today))
     for line in log:
         print(line)
     if args.dry_run:
@@ -134,6 +130,10 @@ def cmd_note(args, catalog):
     with st.locked() as state:
         state["sessions"].append({"date": str(_date(args.date)), "text": args.text})
     print("noted")
+
+
+def cmd_report(args, catalog):
+    print(report.progress_markdown(st.load(), catalog, date.today()))
 
 
 def cmd_sheet(args, catalog):
@@ -232,6 +232,9 @@ def main(argv=None):
     p.add_argument("text")
     p.add_argument("--date")
     p.set_defaults(fn=cmd_note)
+
+    p = sub.add_parser("report", help="progress by topic as a markdown table")
+    p.set_defaults(fn=cmd_report)
 
     p = sub.add_parser("sheet", help="print every saved key insight by topic")
     p.set_defaults(fn=cmd_sheet)
