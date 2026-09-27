@@ -184,3 +184,16 @@ def test_no_mock_by_default_on_saturday(state, catalog, todoist):
     sync(state, catalog, todoist, SAT)
     t = only_task(todoist)
     assert "mock" not in t["content"].lower() and "Mock" not in t["description"]
+
+
+def test_logging_yesterday_late_frees_todays_slot(state, catalog, todoist):
+    seed(state, catalog, ["Two Sum", "3Sum", "Valid Anagram", "Group Anagrams", "Valid Sudoku",
+                          "Top K Frequent Elements"], SUN - timedelta(days=60), interval=30)
+    sync(state, catalog, todoist, SUN)
+    first = [a for a in state["assignments"].values() if a["kind"] == "review"][0]
+    name = catalog[first["problem"]].name
+    sync(state, catalog, todoist, MON)  # nothing done Sunday, it all rolls over
+    log_attempt(state, catalog, name, grade="again", video=True, when=SUN)
+    _, created, _ = sync(state, catalog, todoist, MON)
+    assert [c[0] for c in created] == ["review"]
+    assert name not in only_task(todoist)["description"].split("Already done")[0]

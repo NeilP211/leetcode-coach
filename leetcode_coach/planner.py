@@ -28,6 +28,11 @@ def due_cards(cards, today, ahead=0):
     return [c for c in cards.values() if c.due and c.due <= until and not c.retired]
 
 
+def pullable(cards, today):
+    """Problems due in the next few days that a quiet day may pull forward."""
+    return [c for c in due_cards(cards, today, LOOKAHEAD_DAYS) if c.due <= today or c.interval >= 7]
+
+
 def targets(config, due_count, today, interview=None, soon_count=0):
     """How many redos, new problems and mocks to hand out today.
 
@@ -79,8 +84,10 @@ def pick_reviews(cards, today, k, exclude=(), cram=False):
 
     picked = sorted(due, key=risk)[:k]
     if len(picked) < k:
+        # Short gaps are deliberate (a fresh `again` waits its 2 days), so only
+        # problems on a gap of a week or more get pulled in early.
         soon = [c for c in due_cards(cards, today, LOOKAHEAD_DAYS)
-                if c.problem not in exclude and c.due > today]
+                if c.problem not in exclude and c.due > today and c.interval >= 7]
         picked += sorted(soon, key=lambda c: (c.due, -c.lapses, c.problem))[: k - len(picked)]
     if cram and len(picked) < k:
         taken = exclude | {c.problem for c in picked}

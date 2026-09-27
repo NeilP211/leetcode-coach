@@ -127,3 +127,15 @@ def test_mock_is_unseen_medium_from_covered_topic(catalog):
 
 def test_mock_none_when_nothing_covered(catalog):
     assert planner.pick_mock(catalog, {}, SAT) is None
+
+
+def test_fresh_again_is_never_pulled_forward(catalog):
+    ev = events_for(catalog, ["Reorder List"], SAT, grade="again")
+    cards = replay(ev)
+    assert planner.pick_reviews(cards, SUN, 2) == []
+    assert planner.pullable(cards, SUN) == []
+
+
+def test_long_gap_redo_is_pulled_forward(catalog):
+    cards = replay(events_for(catalog, ["Two Sum"], SAT - timedelta(days=6)))
+    assert planner.pick_reviews(cards, SAT, 2) == [catalog.find("Two Sum").id]

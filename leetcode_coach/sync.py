@@ -167,7 +167,7 @@ def plan_today(state, catalog, today, extra_new=0):
     day = state["days"].setdefault(str(today), {"assignments": []})
     if "targets" not in day:
         due = len(planner.due_cards(cards, today))
-        soon = len(planner.due_cards(cards, today, planner.LOOKAHEAD_DAYS))
+        soon = len(planner.pullable(cards, today))
         day["targets"] = planner.targets(state["config"], due, today, interview, soon).as_dict()
     day["targets"]["new"] += extra_new
     t = day["targets"]
@@ -175,7 +175,8 @@ def plan_today(state, catalog, today, extra_new=0):
     have = {"review": 0, "new": 0, "mock": 0}
     for aid in day["assignments"]:
         a = state["assignments"].get(aid)
-        if a and a["status"] != "gone":
+        # work finished on an earlier day (logged late) does not use up today's slots
+        if a and (a["status"] == "open" or a.get("done_on") == str(today)):
             have[a["kind"]] += 1
 
     busy = {a["problem"] for a in st.open_assignments(state).values()}
