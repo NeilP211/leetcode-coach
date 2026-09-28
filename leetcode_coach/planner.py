@@ -128,7 +128,7 @@ def _unseen(catalog, cards, exclude):
     ]
 
 
-def new_queue(catalog, cards, exclude=(), intro_count=0):
+def new_queue(catalog, cards, exclude=(), intro_count=0, only_150=False):
     """The ordered list of problems to introduce next.
 
     First pass: core problems topic by topic along the main track, with the
@@ -136,9 +136,12 @@ def new_queue(catalog, cards, exclude=(), intro_count=0):
     Weak topics that the main track has already moved past get one extra
     same-pattern problem from the 250 extras. After the core is finished:
     the remaining hards and the extras by topic, then the warmup easies.
+    only_150 drops everything outside the NeetCode 150, extras included.
     """
     exclude = set(exclude)
     unseen = _unseen(catalog, cards, exclude)
+    if only_150:
+        unseen = [p for p in unseen if p.nc150]
     topic_rank = {t: i for i, t in enumerate(MAIN_TRACK + LIGHT_TRACK)}
 
     def by_track(problems):
@@ -172,17 +175,18 @@ def new_queue(catalog, cards, exclude=(), intro_count=0):
     return queue
 
 
-def pick_new(catalog, cards, k, exclude=(), intro_count=0):
-    return [p.id for p in new_queue(catalog, cards, exclude, intro_count)[:k]]
+def pick_new(catalog, cards, k, exclude=(), intro_count=0, only_150=False):
+    return [p.id for p in new_queue(catalog, cards, exclude, intro_count, only_150)[:k]]
 
 
-def pick_mock(catalog, cards, today, exclude=()):
+def pick_mock(catalog, cards, today, exclude=(), only_150=False):
     """An unseen medium from a topic that is mostly covered, so it feels like an interview.
 
     Falls back to a medium already solved that is not due soon.
     """
     exclude = set(exclude)
-    unseen = [p for p in _unseen(catalog, cards, exclude) if p.difficulty == "Medium"]
+    unseen = [p for p in _unseen(catalog, cards, exclude)
+              if p.difficulty == "Medium" and (p.nc150 or not only_150)]
     covered = set()
     for topic in catalog.topics:
         core = [p for p in catalog.in_topic(topic) if p.tier == CORE]

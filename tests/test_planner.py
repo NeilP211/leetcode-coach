@@ -139,3 +139,15 @@ def test_fresh_again_is_never_pulled_forward(catalog):
 def test_long_gap_redo_is_pulled_forward(catalog):
     cards = replay(events_for(catalog, ["Two Sum"], SAT - timedelta(days=6)))
     assert planner.pick_reviews(cards, SAT, 2) == [catalog.find("Two Sum").id]
+
+
+def test_only_150_skips_weak_topic_extras(catalog):
+    stack = [p.name for p in catalog.problems if p.tier == 1 and p.topic in
+             ("Arrays & Hashing", "Two Pointers", "Sliding Window", "Stack")]
+    ev = events_for(catalog, stack, SAT, grade="good")
+    two = [p.name for p in catalog.problems if p.topic == "Two Pointers" and p.tier == 1]
+    ev += events_for(catalog, two, SAT + timedelta(days=5), grade="again", start=500)
+    cards = replay(ev)
+    queue = planner.new_queue(catalog, cards, only_150=True)
+    assert queue and all(p.nc150 for p in queue)
+    assert len(queue) == sum(1 for p in catalog.problems if p.nc150 and p.id not in cards)

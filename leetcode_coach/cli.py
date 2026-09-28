@@ -87,7 +87,8 @@ def cmd_next(args, catalog):
     state = st.load()
     cards = st.cards(state)
     busy = {a["problem"] for a in st.open_assignments(state).values()}
-    queue = planner.new_queue(catalog, cards, busy, sum(1 for c in cards.values() if c.seen))
+    queue = planner.new_queue(catalog, cards, busy, sum(1 for c in cards.values() if c.seen),
+                              bool(state["config"].get("only_150")))
     for p in queue[: args.n]:
         print(f"{p.name:50} {p.difficulty:7} {p.topic}")
 
@@ -121,7 +122,9 @@ def cmd_config(args, catalog):
                 sys.exit(f"unknown key {args.key}; keys: {', '.join(st.DEFAULT_CONFIG)}")
             if args.value is not None:
                 old, value = cfg[args.key], args.value
-                if value.lower() in ("none", "off"):
+                if isinstance(old, bool):
+                    cfg[args.key] = value.lower() in ("true", "on", "yes", "1")
+                elif value.lower() in ("none", "off"):
                     cfg[args.key] = None
                 elif isinstance(old, (int, float)) or (old is None and value.lstrip("-").isdigit()):
                     cfg[args.key] = int(value) if value.lstrip("-").isdigit() else float(value)

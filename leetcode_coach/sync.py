@@ -182,19 +182,20 @@ def plan_today(state, catalog, today, extra_new=0):
     busy = {a["problem"] for a in st.open_assignments(state).values()}
     cram = "cram" in t.get("reason", "")
     intro = sum(1 for c in cards.values() if c.seen)
+    only_150 = bool(state["config"].get("only_150"))
     adds = []
     for pid in planner.pick_reviews(cards, today, t["review"] - have["review"], busy, cram):
         adds.append(("review", pid))
         busy.add(pid)
     new_slots = t["new"] - have["new"]
     if t["mock"] > have["mock"]:
-        pid = planner.pick_mock(catalog, cards, today, busy)
+        pid = planner.pick_mock(catalog, cards, today, busy, only_150)
         if pid:
             adds.append(("mock", pid))
             busy.add(pid)
         else:
             new_slots += 1  # nothing mock-worthy yet, so it stays a new problem
-    for pid in planner.pick_new(catalog, cards, new_slots, busy, intro):
+    for pid in planner.pick_new(catalog, cards, new_slots, busy, intro, only_150):
         adds.append(("new", pid))
     return t, adds
 

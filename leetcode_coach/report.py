@@ -81,7 +81,8 @@ def status_data(state, catalog, today):
         "due_next_7_days": dict(sorted(ahead.items())),
         "next_new": [p.name for p in planner.new_queue(
             catalog, cards, {a["problem"] for a in st.open_assignments(state).values()},
-            sum(1 for c in cards.values() if c.seen))[:5]],
+            sum(1 for c in cards.values() if c.seen),
+            bool(state["config"].get("only_150")))[:5]],
         "interview": st.next_interview(state, today),
         "topics": topic_rows(catalog, cards),
         "config": state["config"],

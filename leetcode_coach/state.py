@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
     "mock_weekday": None,  # mocks are off; 0 to 6 (Monday is 0) turns on a weekly one
     "max_interval": srs.DEFAULT_MAX_INTERVAL,
     "cram_days": 10,  # how close an interview has to be to switch to cram mode
+    "only_150": False,  # true keeps new problems and mocks inside the NeetCode 150
     "label": "leetcode",
     "project_id": None,  # None means the Inbox
 }
