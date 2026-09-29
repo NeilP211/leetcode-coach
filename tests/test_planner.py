@@ -18,6 +18,12 @@ def test_targets_trade_new_for_redos(due, review, new):
     assert (t.review, t.new, t.mock) == (review, new, 0)
 
 
+@pytest.mark.parametrize("due,review,new", [(3, 2, 2), (7, 2, 2), (12, 5, 0)])
+def test_min_new_stops_borrowing(due, review, new):
+    t = planner.targets({**CFG, "min_new": 2}, due, SUN)
+    assert (t.review, t.new) == (review, new)
+
+
 def test_quiet_day_pulls_upcoming_redos():
     t = planner.targets(CFG, 0, SUN, soon_count=5)
     assert t.review == 2

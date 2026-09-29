@@ -38,13 +38,14 @@ def targets(config, due_count, today, interview=None, soon_count=0):
 
     The base is review_per_day redos plus new_per_day new problems. When more
     redos are due than the base allows, redos borrow new-problem slots but at
-    least one new problem stays, so progress never fully stalls. If the pile
+    least min_new new problems stay, so progress never fully stalls. If the pile
     reaches three days' worth, the day becomes a catch-up day with no new
     problems. Inside the cram window before an interview, new problems drop
     to one and a redo slot is added. Mocks are opt in through mock_weekday. On a quiet day, redos due in the next
     few days fill the empty redo slots, which also flattens later spikes.
     """
     rbase, nbase = config["review_per_day"], config["new_per_day"]
+    keep = min(nbase, config.get("min_new", 1))
     reason = []
     cram = False
     if interview:
@@ -60,7 +61,7 @@ def targets(config, due_count, today, interview=None, soon_count=0):
     else:
         review = min(max(due_count, soon_count), rbase)
         if due_count > rbase:
-            review += min(due_count - rbase, max(0, nbase - 1))
+            review += min(due_count - rbase, max(0, nbase - keep))
             if review > rbase:
                 reason.append(f"{due_count} redos due, borrowed {review - rbase} new slot(s)")
         new = max(0, min(nbase, budget - review))

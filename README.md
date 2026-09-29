@@ -70,8 +70,8 @@ problems solved on the same day don't all come back on the same day.
 
 The base is 2 redos and 2 new problems.
 
-- More than 2 redos due: redos borrow new-problem slots, but at least one new problem stays so
-  the roadmap keeps moving.
+- More than 2 redos due: redos borrow new-problem slots, but at least `min_new` new problems
+  (default 1) stay so the roadmap keeps moving. `lc config min_new 2` stops the borrowing.
 - Three days' worth of redos due: a catch-up day with no new problems.
 - A quiet day with nothing due pulls in redos due in the next 3 days, which flattens later spikes.
 - Anything left over from earlier days counts toward today's slots instead of stacking on top.
