@@ -145,6 +145,15 @@ def test_more_adds_to_today(state, catalog, todoist):
     assert only_task(todoist)["due"]["date"] == str(SUN)
 
 
+def test_more_redos_pull_early(state, catalog, todoist):
+    seed(state, catalog, ["Two Sum", "Valid Anagram"], SUN - timedelta(days=1))
+    seed(state, catalog, ["3Sum"], SUN - timedelta(days=3))
+    sync(state, catalog, todoist, SUN)
+    _, created, _ = sync(state, catalog, todoist, SUN, extra_review=2)
+    # nothing is due yet; only 3Sum is old enough to pull forward
+    assert created == [("review", catalog.find("3Sum").id)]
+
+
 def test_dry_run_touches_nothing(state, catalog, todoist):
     before = copy.deepcopy(state["events"])
     _, created, _ = sync(state, catalog, None, SUN, dry_run=True)

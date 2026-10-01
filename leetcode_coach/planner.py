@@ -74,8 +74,12 @@ def targets(config, due_count, today, interview=None, soon_count=0):
     return Targets(review, new, mock, "; ".join(reason))
 
 
-def pick_reviews(cards, today, k, exclude=(), cram=False):
-    """The k most at-risk due problems, pulling shaky ones forward when cramming."""
+def pick_reviews(cards, today, k, exclude=(), cram=False, early=False):
+    """The k most at-risk due problems, pulling shaky ones forward when cramming.
+
+    early (an explicit ask for more redos) fills any gap with the soonest due
+    problems not touched in the last two days.
+    """
     exclude = set(exclude)
     due = [c for c in due_cards(cards, today) if c.problem not in exclude]
 
@@ -97,6 +101,15 @@ def pick_reviews(cards, today, k, exclude=(), cram=False):
             if c.problem not in taken and c.due and c.due > today and not c.retired
         ]
         ahead.sort(key=lambda c: (not c.shaky, c.due, c.problem))
+        picked += ahead[: k - len(picked)]
+    if early and len(picked) < k:
+        taken = exclude | {c.problem for c in picked}
+        recent = today - timedelta(days=1)
+        ahead = [
+            c for c in cards.values()
+            if c.problem not in taken and c.due and not c.retired and not (c.last and c.last >= recent)
+        ]
+        ahead.sort(key=lambda c: (c.due, -c.lapses, c.problem))
         picked += ahead[: k - len(picked)]
     return [c.problem for c in picked]
 

@@ -101,6 +101,7 @@ lc log "koko" -g again -v -m 45 -i "binary search on the answer, check feasibili
 lc log 146 -g good         problems resolve by name, fuzzy name, or LeetCode number
 lc skip "lru"              checked the day off but didn't do this one: back on the list
 lc more 1                  one more new problem today
+lc more 2 --redo           two more redos today (soonest due, skipping anything done in the last 2 days)
 lc show "lru cache"        history and saved insight for one problem
 lc next 10                 preview the new problem queue
 lc sheet                   every saved one line insight, grouped by topic

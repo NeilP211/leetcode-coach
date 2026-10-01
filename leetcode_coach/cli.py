@@ -36,7 +36,8 @@ def cmd_sync(args, catalog):
         todoist = client()
         with st.locked() as state:
             targets, created, log = sync(state, catalog, todoist, today,
-                                         extra_new=getattr(args, "extra", 0))
+                                         extra_new=getattr(args, "extra", 0),
+                                         extra_review=getattr(args, "extra_review", 0))
     for line in log:
         print(line)
     if args.dry_run:
@@ -47,7 +48,11 @@ def cmd_sync(args, catalog):
 
 
 def cmd_more(args, catalog):
-    args.extra, args.dry_run = args.n, False
+    args.dry_run = False
+    if args.redo:
+        args.extra, args.extra_review = 0, args.n
+    else:
+        args.extra, args.extra_review = args.n, 0
     cmd_sync(args, catalog)
 
 
@@ -182,8 +187,9 @@ def main(argv=None):
     p.add_argument("--date")
     p.set_defaults(fn=cmd_sync)
 
-    p = sub.add_parser("more", help="add N more new problems today")
+    p = sub.add_parser("more", help="add N more new problems (or redos with --redo) today")
     p.add_argument("n", type=int, nargs="?", default=1)
+    p.add_argument("--redo", action="store_true", help="add redos instead of new problems")
     p.add_argument("--date")
     p.set_defaults(fn=cmd_more)
 

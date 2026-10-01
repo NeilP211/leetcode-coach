@@ -157,7 +157,7 @@ def reconcile(state, client, today):
     return log
 
 
-def plan_today(state, catalog, today, extra_new=0):
+def plan_today(state, catalog, today, extra_new=0, extra_review=0):
     """What to add today, given what is already on today's list.
 
     Returns (targets, [(kind, problem_id)]) without touching Todoist.
@@ -170,6 +170,7 @@ def plan_today(state, catalog, today, extra_new=0):
         soon = len(planner.pullable(cards, today))
         day["targets"] = planner.targets(state["config"], due, today, interview, soon).as_dict()
     day["targets"]["new"] += extra_new
+    day["targets"]["review"] += extra_review
     t = day["targets"]
 
     have = {"review": 0, "new": 0, "mock": 0}
@@ -184,7 +185,8 @@ def plan_today(state, catalog, today, extra_new=0):
     intro = sum(1 for c in cards.values() if c.seen)
     only_150 = bool(state["config"].get("only_150"))
     adds = []
-    for pid in planner.pick_reviews(cards, today, t["review"] - have["review"], busy, cram):
+    for pid in planner.pick_reviews(cards, today, t["review"] - have["review"], busy, cram,
+                                    early=extra_review > 0):
         adds.append(("review", pid))
         busy.add(pid)
     new_slots = t["new"] - have["new"]
@@ -248,12 +250,12 @@ def publish(state, catalog, client, today, force_today=False):
     return log
 
 
-def sync(state, catalog, client, today=None, extra_new=0, dry_run=False):
+def sync(state, catalog, client, today=None, extra_new=0, dry_run=False, extra_review=0):
     today = today or date.today()
     log = [] if dry_run else reconcile(state, client, today)
     if dry_run:
         state["days"].setdefault(str(today), {"assignments": []})
-    targets, adds = plan_today(state, catalog, today, extra_new)
+    targets, adds = plan_today(state, catalog, today, extra_new, extra_review)
     created = []
     for kind, pid in adds:
         created.append((kind, pid))
@@ -262,6 +264,6 @@ def sync(state, catalog, client, today=None, extra_new=0, dry_run=False):
             state["days"][str(today)]["assignments"].append(aid)
             log.append(f"added {kind}: {catalog[pid].name}")
     if not dry_run:
-        log += publish(state, catalog, client, today, force_today=extra_new > 0)
+        log += publish(state, catalog, client, today, force_today=extra_new + extra_review > 0)
         st.prune_days(state, today)
     return targets, created, log
