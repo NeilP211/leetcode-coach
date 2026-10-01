@@ -93,7 +93,7 @@ def cmd_next(args, catalog):
     cards = st.cards(state)
     busy = {a["problem"] for a in st.open_assignments(state).values()}
     queue = planner.new_queue(catalog, cards, busy, sum(1 for c in cards.values() if c.seen),
-                              bool(state["config"].get("only_150")))
+                              bool(state["config"].get("only_150")), state.get("focus", ()))
     for p in queue[: args.n]:
         print(f"{p.name:50} {p.difficulty:7} {p.topic}")
 
@@ -117,6 +117,23 @@ def cmd_interview(args, catalog):
             print(f"removed {args.company}")
         for i in sorted(state["interviews"], key=lambda i: i["date"]):
             print(f"  {i['date']}  {i['company']}  {i['notes']}")
+
+
+def cmd_focus(args, catalog):
+    with st.locked() as state:
+        if args.action == "set":
+            state["focus"] = list(dict.fromkeys(catalog.find(q).id for q in args.problems))
+        elif args.action == "add":
+            ids = [catalog.find(q).id for q in args.problems]
+            state["focus"] = list(dict.fromkeys(state["focus"] + ids))
+        elif args.action == "clear":
+            state["focus"] = []
+        cards = st.cards(state)
+        for pid in state["focus"]:
+            done = pid in cards and cards[pid].seen
+            print(f"  [{'x' if done else ' '}] {catalog[pid].name:45} {catalog[pid].topic}")
+        if not state["focus"]:
+            print("no focus list; new problems follow the usual track")
 
 
 def cmd_config(args, catalog):
@@ -236,6 +253,11 @@ def main(argv=None):
     p.add_argument("date", nargs="?")
     p.add_argument("--notes")
     p.set_defaults(fn=cmd_interview)
+
+    p = sub.add_parser("focus", help="problems that jump the new problem queue, in order")
+    p.add_argument("action", choices=["list", "set", "add", "clear"], nargs="?", default="list")
+    p.add_argument("problems", nargs="*")
+    p.set_defaults(fn=cmd_focus)
 
     p = sub.add_parser("config", help="show or change settings")
     p.add_argument("key", nargs="?")

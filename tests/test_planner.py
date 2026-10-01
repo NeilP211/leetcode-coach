@@ -157,3 +157,12 @@ def test_only_150_skips_weak_topic_extras(catalog):
     queue = planner.new_queue(catalog, cards, only_150=True)
     assert queue and all(p.nc150 for p in queue)
     assert len(queue) == sum(1 for p in catalog.problems if p.nc150 and p.id not in cards)
+
+
+def test_focus_jumps_the_queue_in_order(catalog):
+    focus = [catalog.find(n).id for n in ("Number of Islands", "Coin Change", "Two Sum")]
+    cards = replay(events_for(catalog, ["Two Sum"], SAT))
+    queue = planner.new_queue(catalog, cards, focus=focus)
+    assert [p.id for p in queue[:2]] == focus[:2]
+    assert len(queue) == len({p.id for p in queue}) == len(planner.new_queue(catalog, cards))
+    assert planner.pick_new(catalog, cards, 1, exclude=focus[:1], focus=focus) == focus[1:2]

@@ -34,6 +34,7 @@ EMPTY = {
     "daily": {},
     "days": {},
     "interviews": [],
+    "focus": [],  # problem ids that jump the new problem queue, in order
     "insights": {},
     "sessions": [],
     "next_seq": 1,

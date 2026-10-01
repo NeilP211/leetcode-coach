@@ -142,8 +142,12 @@ def _unseen(catalog, cards, exclude):
     ]
 
 
-def new_queue(catalog, cards, exclude=(), intro_count=0, only_150=False):
+def new_queue(catalog, cards, exclude=(), intro_count=0, only_150=False, focus=()):
     """The ordered list of problems to introduce next.
+
+    focus is a hand-picked list of problem ids that jump the queue, in the
+    order given (interview prep for a specific company, say). The rest of
+    the queue follows as usual.
 
     First pass: core problems topic by topic along the main track, with the
     light track mixed in every few problems once trees and heaps are done.
@@ -186,11 +190,16 @@ def new_queue(catalog, cards, exclude=(), intro_count=0, only_150=False):
     warm = by_track([p for p in unseen if p.tier == WARMUP])
     seen_ids = {p.id for p in queue}
     queue += [p for p in later + warm if p.id not in seen_ids]
+    if focus:
+        unseen_ids = {p.id for p in _unseen(catalog, cards, exclude)}
+        front = [catalog[pid] for pid in dict.fromkeys(focus) if pid in unseen_ids]
+        front_ids = {p.id for p in front}
+        queue = front + [p for p in queue if p.id not in front_ids]
     return queue
 
 
-def pick_new(catalog, cards, k, exclude=(), intro_count=0, only_150=False):
-    return [p.id for p in new_queue(catalog, cards, exclude, intro_count, only_150)[:k]]
+def pick_new(catalog, cards, k, exclude=(), intro_count=0, only_150=False, focus=()):
+    return [p.id for p in new_queue(catalog, cards, exclude, intro_count, only_150, focus)[:k]]
 
 
 def pick_mock(catalog, cards, today, exclude=(), only_150=False):

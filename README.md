@@ -38,6 +38,8 @@ New
   for an unseen medium from a topic I've mostly covered, with the topic hidden.
 - **150 only:** `lc config only_150 true` keeps new problems and mocks inside the NeetCode 150,
   so a weak topic no longer pulls in a practice problem from the 250 extras.
+- **Focus list:** `lc focus set "number of islands" "coin change"` puts hand-picked problems at
+  the front of the new problem queue, in that order. `lc focus clear` goes back to the usual track.
 - **Checking the task off** records every problem on it as done. `lc skip` puts back one I didn't
   actually get to. If I don't check it off, tomorrow's task is the same task, rewritten with
   today's leftovers plus whatever slots are still free.
@@ -109,6 +111,7 @@ lc report                  progress by topic as a markdown table
 lc interview add Acme 2026-10-20
 lc config new_per_day 3
 lc config only_150 true     stick to the NeetCode 150
+lc focus set "number of islands" "coin change"   these come first as new problems
 lc retire "two sum"        stop scheduling redos of something trivial
 lc import-neetcode         pick up problems checked off on neetcode.io
 ```
