@@ -103,7 +103,7 @@ def status_text(data):
         line = f"today's plan: {t['review']} redo, {t['new']} new, {t['mock']} mock"
         out.append(line + (f" ({t['reason']})" if t.get("reason") else ""))
     for item in data["today"]:
-        mark = {"open": "[ ]", "done": "[x]", "gone": "[-]"}[item["status"]]
+        mark = {"open": "[ ]", "done": "[x]", "gone": "[-]", "snoozed": "[z]"}[item["status"]]
         since = f" (since {item['since']})" if item["since"] != data["date"] else ""
         out.append(f"  {mark} {item['kind']:6} {item['problem']}{since}")
     if data["unrated"]:

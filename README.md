@@ -40,6 +40,7 @@ New
   so a weak topic no longer pulls in a practice problem from the 250 extras.
 - **Focus list:** `lc focus set "number of islands" "coin change"` puts hand-picked problems at
   the front of the new problem queue, in that order. `lc focus clear` goes back to the usual track.
+- **Snooze:** `lc snooze "lru" --until 2026-10-08` holds one problem off the daily lists until a date (say, after an interview). It comes back as a normal redo then.
 - **Checking the task off** records every problem on it as done. `lc skip` puts back one I didn't
   actually get to. If I don't check it off, tomorrow's task is the same task, rewritten with
   today's leftovers plus whatever slots are still free.
@@ -102,6 +103,7 @@ lc sync                    record completed tasks and fill today's list
 lc log "koko" -g again -v -m 45 -i "binary search on the answer, check feasibility"
 lc log 146 -g good         problems resolve by name, fuzzy name, or LeetCode number
 lc skip "lru"              checked the day off but didn't do this one: back on the list
+lc snooze "lru" --until 2026-10-08   hold a problem off the lists until that date (--clear releases it)
 lc more 1                  one more new problem today
 lc more 2 --redo           two more redos today (soonest due, skipping anything done in the last 2 days)
 lc show "lru cache"        history and saved insight for one problem

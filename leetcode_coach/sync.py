@@ -181,6 +181,7 @@ def plan_today(state, catalog, today, extra_new=0, extra_review=0):
             have[a["kind"]] += 1
 
     busy = {a["problem"] for a in st.open_assignments(state).values()}
+    busy |= {pid for pid, until in state.get("snooze", {}).items() if until > str(today)}
     cram = "cram" in t.get("reason", "")
     intro = sum(1 for c in cards.values() if c.seen)
     only_150 = bool(state["config"].get("only_150"))

@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from conftest import MON, SAT, SUN
 from leetcode_coach import state as st
-from leetcode_coach.debrief import log_attempt, skip, unrated
+from leetcode_coach.debrief import log_attempt, skip, snooze, unrated
 from leetcode_coach.sync import render_daily, sync
 
 TUE = MON + timedelta(days=1)
@@ -206,3 +206,23 @@ def test_logging_yesterday_late_frees_todays_slot(state, catalog, todoist):
     _, created, _ = sync(state, catalog, todoist, MON)
     assert [c[0] for c in created] == ["review"]
     assert name not in only_task(todoist)["description"].split("Already done")[0]
+
+
+def test_snooze_holds_a_redo_back_until_its_date(state, catalog, todoist):
+    seed(state, catalog, ["Two Sum", "Valid Anagram", "3Sum"], SUN - timedelta(days=30))
+    sync(state, catalog, todoist, SUN)
+    assert "Two Sum" in only_task(todoist)["description"]
+    until = MON + timedelta(days=2)
+    assert snooze(state, catalog, "two sum", until) == f"holding back Two Sum until {until}"
+    sync(state, catalog, todoist, SUN)
+    assert "Two Sum" not in only_task(todoist)["description"]
+    sync(state, catalog, todoist, MON)
+    assert "Two Sum" not in only_task(todoist)["description"]
+    sync(state, catalog, todoist, until)
+    assert "Two Sum" in only_task(todoist)["description"]
+
+
+def test_snooze_clear_releases_it(state, catalog):
+    snooze(state, catalog, "two sum", SUN)
+    assert snooze(state, catalog, "two sum") == "released: Two Sum"
+    assert state["snooze"] == {}

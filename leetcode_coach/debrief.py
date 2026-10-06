@@ -79,6 +79,24 @@ def skip(state, catalog, query, when=None):
     return f"back on the list: {problem.name}"
 
 
+def snooze(state, catalog, query, until=None):
+    """Hold a problem back from the daily lists until a date (None clears the hold).
+
+    An open copy comes off the list now; it returns as a normal redo on or
+    after that date because its card is still due.
+    """
+    problem = catalog.find(query)
+    held = state.setdefault("snooze", {})
+    if until is None:
+        held.pop(problem.id, None)
+        return f"released: {problem.name}"
+    held[problem.id] = str(until)
+    for a in st.open_assignments(state).values():
+        if a["problem"] == problem.id:
+            a["status"] = "snoozed"
+    return f"holding back {problem.name} until {until}"
+
+
 def unrated(state, catalog, since_days=7, today=None):
     today = today or date.today()
     cutoff = str(today - timedelta(days=since_days))
