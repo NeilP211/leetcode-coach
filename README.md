@@ -40,6 +40,7 @@ New
   so a weak topic no longer pulls in a practice problem from the 250 extras.
 - **Focus list:** `lc focus set "number of islands" "coin change"` puts hand-picked problems at
   the front of the new problem queue, in that order. `lc focus clear` goes back to the usual track.
+- **Pause:** `lc config pause_until 2026-10-08` stops new lists and rollovers until that day (the open task just moves to it). `lc config pause_until off` ends it early.
 - **Snooze:** `lc snooze "lru" --until 2026-10-08` holds one problem off the daily lists until a date (say, after an interview). It comes back as a normal redo then.
 - **Checking the task off** records every problem on it as done. `lc skip` puts back one I didn't
   actually get to. If I don't check it off, tomorrow's task is the same task, rewritten with

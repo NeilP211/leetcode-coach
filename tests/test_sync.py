@@ -226,3 +226,16 @@ def test_snooze_clear_releases_it(state, catalog):
     snooze(state, catalog, "two sum", SUN)
     assert snooze(state, catalog, "two sum") == "released: Two Sum"
     assert state["snooze"] == {}
+
+
+def test_pause_holds_everything_until_its_date(state, catalog, todoist):
+    sync(state, catalog, todoist, SUN)
+    task_id = only_task(todoist)["id"]
+    until = SUN + timedelta(days=3)
+    state["config"]["pause_until"] = str(until)
+    targets, created, log = sync(state, catalog, todoist, MON)
+    assert created == [] and targets["new"] == 0 and targets["review"] == 0
+    assert only_task(todoist)["due"]["date"] == str(until)
+    sync(state, catalog, todoist, until)
+    t = only_task(todoist)
+    assert t["id"] == task_id and t["due"]["date"] == str(until)

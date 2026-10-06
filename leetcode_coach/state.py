@@ -24,6 +24,7 @@ DEFAULT_CONFIG = {
     "only_150": False,  # true keeps new problems and mocks inside the NeetCode 150
     "label": "leetcode",
     "project_id": None,  # None means the Inbox
+    "pause_until": None,  # YYYY-MM-DD: no new lists or rollovers before this day
 }
 
 EMPTY = {

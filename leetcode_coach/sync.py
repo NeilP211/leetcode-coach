@@ -254,6 +254,15 @@ def publish(state, catalog, client, today, force_today=False):
 
 def sync(state, catalog, client, today=None, extra_new=0, dry_run=False, extra_review=0):
     today = today or date.today()
+    until = state["config"].get("pause_until")
+    if until and today < date.fromisoformat(until):
+        log = [f"paused until {until}"]
+        daily = state["daily"]
+        if client and not dry_run and daily.get("task") and daily.get("date") != until:
+            client.update_task(daily["task"], due_date=until)
+            daily["date"] = until
+            log.append(f"moved the open daily task to {until}")
+        return {"review": 0, "new": 0, "mock": 0, "reason": f"paused until {until}"}, [], log
     log = [] if dry_run else reconcile(state, client, today)
     if dry_run:
         state["days"].setdefault(str(today), {"assignments": []})
