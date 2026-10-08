@@ -40,7 +40,7 @@ def targets(config, due_count, today, interview=None, soon_count=0):
     redos are due than the base allows, redos borrow new-problem slots but at
     least min_new new problems stay, so progress never fully stalls. If the pile
     reaches three days' worth, the day becomes a catch-up day with no new
-    problems. Inside the cram window before an interview, new problems drop
+    problems (catch_up false keeps the base load instead). Inside the cram window before an interview, new problems drop
     to one and a redo slot is added. Mocks are opt in through mock_weekday. On a quiet day, redos due in the next
     few days fill the empty redo slots, which also flattens later spikes.
     """
@@ -55,7 +55,7 @@ def targets(config, due_count, today, interview=None, soon_count=0):
             rbase, nbase = rbase + 1, min(nbase, 1)
             reason.append(f"cram mode, {interview['company']} in {days_left}d")
     budget = rbase + nbase
-    if due_count >= 3 * budget:
+    if config.get("catch_up", True) and due_count >= 3 * budget:
         review, new = min(due_count, budget + 1), 0
         reason.append(f"catch-up day, {due_count} redos due")
     else:

@@ -76,7 +76,8 @@ The base is 2 redos and 2 new problems.
 
 - More than 2 redos due: redos borrow new-problem slots, but at least `min_new` new problems
   (default 1) stay so the roadmap keeps moving. `lc config min_new 2` stops the borrowing.
-- Three days' worth of redos due: a catch-up day with no new problems.
+- Three days' worth of redos due: a catch-up day with no new problems. `lc config catch_up off`
+  keeps the base load instead.
 - A quiet day with nothing due pulls in redos due in the next 3 days, which flattens later spikes.
 - Anything left over from earlier days counts toward today's slots instead of stacking on top.
 - An interview within 10 days switches to cram mode: 1 new problem, an extra redo slot, and

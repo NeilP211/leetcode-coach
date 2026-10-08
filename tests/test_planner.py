@@ -24,6 +24,11 @@ def test_min_new_stops_borrowing(due, review, new):
     assert (t.review, t.new) == (review, new)
 
 
+def test_catch_up_can_be_turned_off():
+    t = planner.targets({**CFG, "min_new": 2, "catch_up": False}, 20, SUN)
+    assert (t.review, t.new) == (2, 2)
+
+
 def test_quiet_day_pulls_upcoming_redos():
     t = planner.targets(CFG, 0, SUN, soon_count=5)
     assert t.review == 2

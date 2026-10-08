@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
     "review_per_day": 2,
     "new_per_day": 2,
     "min_new": 1,  # new problems redos can never borrow (catch-up days still drop to 0)
+    "catch_up": True,  # false keeps the base load even when three days of redos pile up
     "mock_weekday": None,  # mocks are off; 0 to 6 (Monday is 0) turns on a weekly one
     "max_interval": srs.DEFAULT_MAX_INTERVAL,
     "cram_days": 10,  # how close an interview has to be to switch to cram mode
