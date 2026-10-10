@@ -48,6 +48,8 @@ def cmd_sync(args, catalog):
 
 
 def cmd_more(args, catalog):
+    if args.n < 1:
+        sys.exit("lc more needs a count of 1 or more")
     args.dry_run = False
     if args.redo:
         args.extra, args.extra_review = 0, args.n

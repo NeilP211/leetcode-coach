@@ -74,7 +74,9 @@ def skip(state, catalog, query, when=None):
     ev = max(unrated, key=lambda e: (e["date"], e["seq"]))
     state["events"].remove(ev)
     a = state["assignments"][ev["assignment"]]
-    a["status"] = "open"
+    # if the problem is already back on the list, that copy carries it; never list it twice
+    listed = any(o["problem"] == problem.id for o in st.open_assignments(state).values())
+    a["status"] = "gone" if listed else "open"
     a.pop("done_on", None)
     return f"back on the list: {problem.name}"
 

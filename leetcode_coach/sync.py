@@ -169,8 +169,6 @@ def plan_today(state, catalog, today, extra_new=0, extra_review=0):
         due = len(planner.due_cards(cards, today))
         soon = len(planner.pullable(cards, today))
         day["targets"] = planner.targets(state["config"], due, today, interview, soon).as_dict()
-    day["targets"]["new"] += extra_new
-    day["targets"]["review"] += extra_review
     t = day["targets"]
 
     have = {"review": 0, "new": 0, "mock": 0}
@@ -179,6 +177,12 @@ def plan_today(state, catalog, today, extra_new=0, extra_review=0):
         # work finished on an earlier day (logged late) does not use up today's slots
         if a and (a["status"] == "open" or a.get("done_on") == str(today)):
             have[a["kind"]] += 1
+    # An ask for more goes on top of what is already there. Leftovers can outnumber
+    # the day's slots, and the ask must not be swallowed by that overflow.
+    if extra_new > 0:
+        t["new"] = max(t["new"], have["new"]) + extra_new
+    if extra_review > 0:
+        t["review"] = max(t["review"], have["review"]) + extra_review
 
     busy = {a["problem"] for a in st.open_assignments(state).values()}
     busy |= {pid for pid, until in state.get("snooze", {}).items() if until > str(today)}
@@ -228,10 +232,13 @@ def publish(state, catalog, client, today, force_today=False):
         return log
 
     # Work reopened after today's task was already checked off waits for tomorrow,
-    # unless it was explicitly asked for today.
+    # and keeps waiting on every later sync, unless more was explicitly asked for today.
     due = today
-    if daily.get("completed_on") == str(today) and not daily.get("task") and not force_today:
-        due = today + timedelta(days=1)
+    if daily.get("completed_on") == str(today):
+        if force_today:
+            del daily["completed_on"]
+        else:
+            due = today + timedelta(days=1)
     day = state["days"][str(today)]
     done = [catalog[state["assignments"][aid]["problem"]].name for aid in day["assignments"]
             if state["assignments"].get(aid, {}).get("status") == "done"]
@@ -246,7 +253,9 @@ def publish(state, catalog, client, today, force_today=False):
     else:
         task = client.create_task(content, desc, str(due), PRIORITY,
                                   [state["config"]["label"]], state["config"]["project_id"])
-        daily = state["daily"] = {"task": task["id"]}
+        # completed_on is carried along so a task made for tomorrow stays on tomorrow
+        checked = {k: v for k, v in daily.items() if k == "completed_on"}
+        daily = state["daily"] = {"task": task["id"], **checked}
         log.append(f"created daily task: {content}")
     daily.update({"date": str(due), "digest": digest, "assignments": aids})
     return log
@@ -267,6 +276,12 @@ def sync(state, catalog, client, today=None, extra_new=0, dry_run=False, extra_r
     if dry_run:
         state["days"].setdefault(str(today), {"assignments": []})
     targets, adds = plan_today(state, catalog, today, extra_new, extra_review)
+    # Tripwire: one sync can never add more than the day's whole target. If a planner
+    # bug ever says otherwise, stop here, before anything is saved or sent to Todoist.
+    limit = sum(max(0, targets[kind]) for kind in KIND_ORDER)
+    if len(adds) > limit:
+        raise RuntimeError(f"refusing to add {len(adds)} problems to a day planned for {limit}; "
+                           "nothing was saved or sent to Todoist")
     created = []
     for kind, pid in adds:
         created.append((kind, pid))

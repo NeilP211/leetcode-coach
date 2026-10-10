@@ -1,7 +1,10 @@
 import copy
 from datetime import timedelta
 
+import pytest
+
 from conftest import MON, SAT, SUN
+from leetcode_coach import planner
 from leetcode_coach import state as st
 from leetcode_coach.debrief import log_attempt, skip, snooze, unrated
 from leetcode_coach.sync import render_daily, sync
@@ -249,3 +252,70 @@ def test_leftovers_above_a_smaller_target_add_nothing(state, catalog, todoist):
     assert targets["new"] == 1
     assert [c for c in created if c[0] == "new"] == []
     assert only_task(todoist)["content"].endswith("3 new")
+
+
+def test_more_still_adds_when_leftovers_overflow_the_target(state, catalog, todoist):
+    state["config"].update(new_per_day=3, min_new=3)
+    sync(state, catalog, todoist, SUN)                      # 3 new, none done
+    state["interviews"] = [{"company": "Acme", "date": str(MON + timedelta(days=2)), "notes": ""}]
+    sync(state, catalog, todoist, MON)                      # cram mode: 1 new, 3 carried over
+    _, created, _ = sync(state, catalog, todoist, MON, extra_new=2)
+    assert [c[0] for c in created] == ["new", "new"]
+    assert only_task(todoist)["content"].endswith("5 new")
+    _, created, _ = sync(state, catalog, todoist, MON)
+    assert created == []
+
+
+def test_more_redos_still_add_when_leftovers_overflow_the_target(state, catalog, todoist):
+    seed(state, catalog, ["Two Sum", "3Sum", "Valid Anagram", "Group Anagrams", "Valid Sudoku",
+                          "Top K Frequent Elements"], SUN - timedelta(days=60), interval=30)
+    state["config"]["review_per_day"] = 4
+    sync(state, catalog, todoist, SUN)                      # 4 redos (plus a borrowed slot), none done
+    carried = sum(1 for a in st.open_assignments(state).values() if a["kind"] == "review")
+    state["config"].update(review_per_day=1, min_new=2)
+    targets, created, _ = sync(state, catalog, todoist, MON)
+    assert targets["review"] < carried and [c for c in created if c[0] == "review"] == []
+    _, created, _ = sync(state, catalog, todoist, MON, extra_review=1)
+    assert [c[0] for c in created] == ["review"]
+
+
+def test_reopened_work_stays_on_tomorrow_across_syncs(state, catalog, todoist):
+    sync(state, catalog, todoist, SUN)
+    todoist.complete(only_task(todoist)["id"], SUN)
+    sync(state, catalog, todoist, SUN)
+    skip(state, catalog, "valid anagram", SUN)
+    sync(state, catalog, todoist, SUN)
+    assert only_task(todoist)["due"]["date"] == str(MON)
+    todoist.calls.clear()
+    sync(state, catalog, todoist, SUN)                      # the 17:00 run, or the resync after a log
+    t = only_task(todoist)
+    assert t["due"]["date"] == str(MON) and t["content"].startswith("LeetCode Sep 28")
+    assert todoist.calls == []
+    sync(state, catalog, todoist, SUN, extra_new=1)         # asking for more brings it back to today
+    assert only_task(todoist)["due"]["date"] == str(SUN)
+    sync(state, catalog, todoist, SUN)                      # and it stays there
+    t = only_task(todoist)
+    assert t["due"]["date"] == str(SUN) and t["content"] == "LeetCode Sep 27: 2 new"
+
+
+def test_skip_never_lists_a_problem_twice(state, catalog, todoist):
+    sync(state, catalog, todoist, SUN)
+    todoist.complete(only_task(todoist)["id"], SUN)
+    sync(state, catalog, todoist, SUN)
+    sync(state, catalog, todoist, TUE, extra_review=2)      # both come back early as redos
+    pid = catalog.find("valid anagram").id
+    assert skip(state, catalog, "valid anagram", TUE) == "back on the list: Valid Anagram"
+    assert [a["problem"] for a in st.open_assignments(state).values()].count(pid) == 1
+    sync(state, catalog, todoist, TUE)
+    assert only_task(todoist)["description"].count("[Valid Anagram]") == 1
+
+
+def test_a_runaway_plan_is_refused_before_it_reaches_todoist(state, catalog, todoist, monkeypatch):
+    sync(state, catalog, todoist, SUN)
+    todoist.calls.clear()
+    known = dict(state["assignments"])
+    monkeypatch.setattr(planner, "pick_new",
+                        lambda cat, *args, **kw: [p.id for p in cat.problems[10:99]])
+    with pytest.raises(RuntimeError, match="89"):
+        sync(state, catalog, todoist, SUN, extra_new=1)
+    assert todoist.calls == [] and state["assignments"] == known
