@@ -171,3 +171,10 @@ def test_focus_jumps_the_queue_in_order(catalog):
     assert [p.id for p in queue[:2]] == focus[:2]
     assert len(queue) == len({p.id for p in queue}) == len(planner.new_queue(catalog, cards))
     assert planner.pick_new(catalog, cards, 1, exclude=focus[:1], focus=focus) == focus[1:2]
+
+
+def test_negative_slots_pick_nothing(catalog):
+    cards = replay(events_for(catalog, ["Two Sum", "Valid Anagram", "Group Anagrams"], SAT - timedelta(days=30)))
+    assert planner.pick_new(catalog, cards, -2) == []
+    assert planner.pick_reviews(cards, SAT, -1) == []
+    assert planner.pick_reviews(cards, SAT, -1, cram=True) == []

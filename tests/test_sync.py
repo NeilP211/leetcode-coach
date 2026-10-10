@@ -239,3 +239,13 @@ def test_pause_holds_everything_until_its_date(state, catalog, todoist):
     sync(state, catalog, todoist, until)
     t = only_task(todoist)
     assert t["id"] == task_id and t["due"]["date"] == str(until)
+
+
+def test_leftovers_above_a_smaller_target_add_nothing(state, catalog, todoist):
+    state["config"].update(new_per_day=3, min_new=3)
+    sync(state, catalog, todoist, SUN)                      # 3 new, none done
+    state["interviews"] = [{"company": "Acme", "date": str(MON + timedelta(days=2)), "notes": ""}]
+    targets, created, _ = sync(state, catalog, todoist, MON)   # cram mode: 1 new, 3 carried over
+    assert targets["new"] == 1
+    assert [c for c in created if c[0] == "new"] == []
+    assert only_task(todoist)["content"].endswith("3 new")

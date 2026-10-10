@@ -81,6 +81,7 @@ def pick_reviews(cards, today, k, exclude=(), cram=False, early=False):
     problems not touched in the last two days.
     """
     exclude = set(exclude)
+    k = max(k, 0)  # leftovers can outnumber today's slots; a negative k would slice from the end
     due = [c for c in due_cards(cards, today) if c.problem not in exclude]
 
     def risk(c):
@@ -199,7 +200,7 @@ def new_queue(catalog, cards, exclude=(), intro_count=0, only_150=False, focus=(
 
 
 def pick_new(catalog, cards, k, exclude=(), intro_count=0, only_150=False, focus=()):
-    return [p.id for p in new_queue(catalog, cards, exclude, intro_count, only_150, focus)[:k]]
+    return [p.id for p in new_queue(catalog, cards, exclude, intro_count, only_150, focus)[:max(k, 0)]]
 
 
 def pick_mock(catalog, cards, today, exclude=(), only_150=False):
