@@ -94,7 +94,7 @@ def new_left(state, catalog, day):
     cards = st.cards(state)
     busy = {a["problem"] for a in st.open_assignments(state).values()} | held_back(state, day)
     return len(planner.new_queue(catalog, cards, busy, 0, bool(state["config"].get("only_150")),
-                                 state.get("focus", ())))
+                                 st.queue_front(state, day)))
 
 
 @pytest.mark.parametrize("seed", range(SEEDS))

@@ -203,7 +203,7 @@ def plan_today(state, catalog, today, extra_new=0, extra_review=0):
         else:
             new_slots += 1  # nothing mock-worthy yet, so it stays a new problem
     for pid in planner.pick_new(catalog, cards, new_slots, busy, intro, only_150,
-                                state.get("focus", ())):
+                                st.queue_front(state, today)):
         adds.append(("new", pid))
     return t, adds
 

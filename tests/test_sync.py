@@ -225,6 +225,38 @@ def test_snooze_holds_a_redo_back_until_its_date(state, catalog, todoist):
     assert "Two Sum" in only_task(todoist)["description"]
 
 
+def test_a_held_new_problem_comes_back_even_outside_the_150(state, catalog, todoist):
+    name = "Design Circular Queue"
+    pid = catalog.find(name).id
+    state["config"].update(only_150=True, new_per_day=1, min_new=1)
+    state["focus"] = [pid]
+    sync(state, catalog, todoist, SUN)
+    assert name in only_task(todoist)["description"]
+    state["focus"] = []                                 # the focus list has moved on without it
+    snooze(state, catalog, name, TUE)
+    for day in (SUN, MON):                              # held: something else fills the slot
+        _, created, _ = sync(state, catalog, todoist, day)
+        assert [k for k, _ in created] == ["new"] and created[0][1] != pid
+        log_attempt(state, catalog, created[0][1], grade="good", when=day)
+    _, created, _ = sync(state, catalog, todoist, TUE)
+    assert ("new", pid) in created
+    assert name in only_task(todoist)["description"]
+
+
+def test_a_held_new_problem_keeps_its_place_in_the_focus_list(state, catalog, todoist):
+    held, first, second = (catalog.find(n).id for n in ("Clone Graph", "Two Sum", "Valid Anagram"))
+    state["config"].update(new_per_day=1, min_new=1)
+    state["focus"] = [held]
+    sync(state, catalog, todoist, SUN)
+    snooze(state, catalog, held, MON)
+    state["focus"] = [first, second, held]
+    _, created, _ = sync(state, catalog, todoist, SUN)
+    assert created == [("new", first)]
+    log_attempt(state, catalog, first, grade="good", when=SUN)
+    _, created, _ = sync(state, catalog, todoist, MON)  # the hold is over, the focus order still wins
+    assert created == [("new", second)]
+
+
 def test_snooze_clear_releases_it(state, catalog):
     snooze(state, catalog, "two sum", SUN)
     assert snooze(state, catalog, "two sum") == "released: Two Sum"

@@ -104,7 +104,8 @@ def cmd_next(args, catalog):
     cards = st.cards(state)
     busy = {a["problem"] for a in st.open_assignments(state).values()}
     queue = planner.new_queue(catalog, cards, busy, sum(1 for c in cards.values() if c.seen),
-                              bool(state["config"].get("only_150")), state.get("focus", ()))
+                              bool(state["config"].get("only_150")),
+                              st.queue_front(state, date.today()))
     for p in queue[: args.n]:
         print(f"{p.name:50} {p.difficulty:7} {p.topic}")
 

@@ -93,6 +93,21 @@ def open_assignments(state):
     return {aid: a for aid, a in state["assignments"].items() if a["status"] == "open"}
 
 
+def queue_front(state, today):
+    """Problem ids that jump the new problem queue, in order.
+
+    A new problem that was handed out and then held back is owed: once its hold
+    ends it goes first, unless the focus list already gives it a place. After
+    those comes the focus list itself.
+    """
+    focus = list(state.get("focus", ()))
+    held = {pid for pid, until in state.get("snooze", {}).items() if until > str(today)}
+    owed = [a["problem"] for a in state["assignments"].values()
+            if a["kind"] == "new" and a["status"] == "snoozed"
+            and a["problem"] not in held and a["problem"] not in focus]
+    return owed + focus
+
+
 def next_interview(state, today):
     upcoming = sorted(
         (i for i in state["interviews"] if date.fromisoformat(i["date"]) >= today),
