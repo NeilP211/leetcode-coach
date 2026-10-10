@@ -44,7 +44,9 @@ New
 - **Snooze:** `lc snooze "lru" --until 2026-10-08` holds one problem off the daily lists until a date (say, after an interview). It comes back as a normal redo then.
 - **Checking the task off** records every problem on it as done. `lc skip` puts back one I didn't
   actually get to. If I don't check it off, tomorrow's task is the same task, rewritten with
-  today's leftovers plus whatever slots are still free.
+  today's leftovers plus whatever slots are still free. When more carried over than the day has
+  slots (cram mode shrinks them, say), the list is just the leftovers and nothing new is added;
+  `lc more` still adds on top.
 
 ## How it decides
 
@@ -141,7 +143,8 @@ Python 3.10+, no dependencies.
    Old solves are scheduled with a guessed gap by how well I know the topic, then spread so they
    come back a couple a day.
 4. `scripts/install_launchd.sh` runs `scripts/daily.sh` at 6:00 and 17:00 (and on wake if the
-   Mac was asleep).
+   Mac was asleep). If Todoist or the network is down, the sync is tried again a few times, a
+   minute apart.
 
 Progress stays out of this repo. It lives in `~/.leetcode-coach/state.json` (or wherever
 `LC_STATE` points), and if that folder is its own git repo, the daily run commits and pushes it

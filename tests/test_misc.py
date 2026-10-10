@@ -1,8 +1,13 @@
 import importlib.util
 import os
+import shutil
+import subprocess
 from pathlib import Path
 
+import pytest
+
 from conftest import SUN
+from leetcode_coach import cli
 from leetcode_coach import report
 from leetcode_coach import state as st
 from leetcode_coach.cli import main
@@ -135,3 +140,49 @@ def test_default_state_lives_outside_the_repo():
     if "LC_STATE" not in os.environ:
         assert st.STATE_FILE == Path.home() / ".leetcode-coach" / "state.json"
     assert ROOT not in st.STATE_FILE.parents
+
+
+def test_a_failed_run_saves_nothing(tmp_path):
+    path = tmp_path / "state.json"
+    with st.locked(path) as s:
+        s["config"]["new_per_day"] = 3
+    with pytest.raises(RuntimeError):
+        with st.locked(path) as s:
+            s["config"]["new_per_day"] = 9
+            raise RuntimeError("Todoist is down")
+    assert st.load(path)["config"]["new_per_day"] == 3
+
+
+def test_more_needs_a_count_of_one_or_more(tmp_path, monkeypatch):
+    monkeypatch.setattr(st, "STATE_FILE", tmp_path / "state.json")
+    monkeypatch.setattr(cli, "client", lambda: pytest.fail("reached Todoist"))
+    for n in ("0", "-2"):
+        with pytest.raises(SystemExit) as err:
+            main(["more", n])
+        assert "1 or more" in str(err.value)
+
+
+def run_daily(root, lc_script):
+    lc = root / "bin" / "lc"
+    lc.write_text(lc_script)
+    lc.chmod(0o755)
+    calls = root / "calls"
+    calls.unlink(missing_ok=True)
+    env = {**os.environ, "LC_STATE": str(root / "data" / "state.json"), "LC_RETRY_WAIT": "0"}
+    run = subprocess.run(["zsh", str(root / "scripts" / "daily.sh")], env=env,
+                         capture_output=True, text=True, timeout=60)
+    return run, calls.read_text().count("x")
+
+
+@pytest.mark.skipif(shutil.which("zsh") is None, reason="daily.sh is a zsh script")
+def test_daily_job_retries_a_failed_sync(tmp_path):
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "bin").mkdir()
+    shutil.copy(ROOT / "scripts" / "daily.sh", tmp_path / "scripts" / "daily.sh")
+    # down twice, then fine: the third try goes through
+    run, tries = run_daily(tmp_path, '#!/bin/sh\necho x >> calls\n[ "$(wc -l < calls)" -ge 3 ]\n')
+    assert (run.returncode, tries) == (0, 3), run.stdout + run.stderr
+    # down for good: a few tries, then it gives up until the next scheduled run
+    run, tries = run_daily(tmp_path, "#!/bin/sh\necho x >> calls\nexit 1\n")
+    assert (run.returncode, tries) == (1, 4), run.stdout + run.stderr
+    assert "giving up" in run.stdout

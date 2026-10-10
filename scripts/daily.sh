@@ -5,7 +5,18 @@
 set -u
 cd "$(dirname "$0")/.."
 echo "== $(date '+%Y-%m-%d %H:%M:%S')"
-./bin/lc sync || exit 1
+# The 6:00 run can fire the moment the Mac wakes, before the network is up, and
+# Todoist has the odd bad minute. A failed sync saves nothing, so trying again is safe.
+tries=0
+until ./bin/lc sync; do
+  tries=$((tries + 1))
+  if [ "$tries" -ge 4 ]; then
+    echo "sync failed $tries times, giving up until the next run"
+    exit 1
+  fi
+  echo "sync failed, trying again in ${LC_RETRY_WAIT:-60}s"
+  sleep "${LC_RETRY_WAIT:-60}"
+done
 DATA="$(dirname "${LC_STATE:-$HOME/.leetcode-coach/state.json}")"
 if [ -d "$DATA/.git" ] && ! git -C "$DATA" diff --quiet -- state.json; then
   git -C "$DATA" add state.json
