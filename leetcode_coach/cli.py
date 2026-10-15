@@ -85,7 +85,7 @@ def cmd_snooze(args, catalog):
 def _resync(args):
     """Refresh the daily task after a change, unless told to stay offline."""
     if not args.offline:
-        cmd_sync(argparse.Namespace(dry_run=False, date=None), Catalog.load())
+        cmd_sync(argparse.Namespace(dry_run=False, date=None), Catalog.load(extras=st.EXTRAS_FILE))
 
 
 def cmd_status(args, catalog):
@@ -302,7 +302,7 @@ def main(argv=None):
     p.set_defaults(fn=cmd_import)
 
     args = ap.parse_args(argv)
-    catalog = Catalog.load()
+    catalog = Catalog.load(extras=st.EXTRAS_FILE)
     if not args.cmd:
         args = ap.parse_args(["status"])
     try:

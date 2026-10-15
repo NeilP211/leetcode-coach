@@ -40,6 +40,10 @@ New
   so a weak topic no longer pulls in a practice problem from the 250 extras.
 - **Focus list:** `lc focus set "number of islands" "coin change"` puts hand-picked problems at
   the front of the new problem queue, in that order. `lc focus clear` goes back to the usual track.
+- **Extra problems:** problems outside the NeetCode 250 (a company's own questions, say) go in
+  `extra_problems.json` next to the progress file, as a list of `id` (number first), `name`, `topic`,
+  `difficulty` and `leetcode` (the link, which can be any site). They are never part of the 150,
+  so with `only_150` on they only show up through the focus list.
 - **Pause:** `lc config pause_until 2026-10-08` stops new lists and rollovers until that day (the open task just moves to it). `lc config pause_until off` ends it early.
 - **Snooze:** `lc snooze "lru" --until 2026-10-08` holds one problem off the daily lists until a date (say, after an interview). It comes back as a normal redo then. A new problem you had not solved yet comes back as the next new problem.
 - **Checking the task off** records every problem on it as done. `lc skip` puts back one I didn't

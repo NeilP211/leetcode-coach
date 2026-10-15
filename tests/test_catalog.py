@@ -1,6 +1,8 @@
+import json
+
 import pytest
 
-from leetcode_coach.catalog import CORE, EXTRA, LIGHT_TRACK, MAIN_TRACK, SECOND_PASS, WARMUP
+from leetcode_coach.catalog import CORE, Catalog, EXTRA, LIGHT_TRACK, MAIN_TRACK, SECOND_PASS, WARMUP
 
 
 def test_full_list(catalog):
@@ -48,3 +50,34 @@ def test_find_ambiguous_suggests(catalog):
 def test_find_nothing(catalog):
     with pytest.raises(LookupError):
         catalog.find("definitely not a problem")
+
+
+def _write_extras(tmp_path, rows):
+    path = tmp_path / "extra_problems.json"
+    path.write_text(json.dumps(rows))
+    return path
+
+
+def test_extras_load_after_the_250(tmp_path):
+    path = _write_extras(tmp_path, [
+        {"id": "1801-number-of-orders-in-the-backlog", "name": "Number of Orders in the Backlog",
+         "topic": "Heap / Priority Queue", "difficulty": "Medium",
+         "leetcode": "https://leetcode.com/problems/number-of-orders-in-the-backlog/"},
+        {"id": "9001-order-ledger", "name": "Order Ledger", "topic": "Arrays & Hashing",
+         "difficulty": "Medium", "leetcode": "https://example.com/order-ledger"},
+    ])
+    cat = Catalog.load(extras=path)
+    assert len(cat.problems) == 252
+    ledger = cat.find("order ledger")
+    assert ledger.id == cat.find("9001").id == "9001-order-ledger"
+    assert not ledger.nc150 and ledger.tier == EXTRA and ledger.video is None
+    assert ledger.neetcode == ledger.leetcode == "https://example.com/order-ledger"
+    assert cat.problems[-1] is ledger and ledger.order == 251
+
+
+def test_extras_missing_file_or_clash(tmp_path):
+    assert len(Catalog.load(extras=tmp_path / "nope.json").problems) == 250
+    path = _write_extras(tmp_path, [{"id": "0146-lru-cache", "name": "LRU Again", "topic": "Linked List",
+                                     "difficulty": "Medium", "leetcode": "https://example.com/lru"}])
+    with pytest.raises(ValueError):
+        Catalog.load(extras=path)

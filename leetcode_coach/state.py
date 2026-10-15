@@ -13,6 +13,9 @@ from . import srs
 # Progress is personal, so it lives outside the code repo (in its own private
 # git repo, see scripts/daily.sh). LC_STATE points somewhere else if needed.
 STATE_FILE = Path(os.environ.get("LC_STATE", Path.home() / ".leetcode-coach" / "state.json"))
+# Problems from outside the NeetCode 250 (a company's own questions, say) sit next
+# to it for the same reason. See Catalog.load.
+EXTRAS_FILE = STATE_FILE.parent / "extra_problems.json"
 
 DEFAULT_CONFIG = {
     "review_per_day": 2,

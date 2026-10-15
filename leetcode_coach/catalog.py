@@ -91,8 +91,22 @@ class Catalog:
         self.topics = list(dict.fromkeys(p.topic for p in problems))
 
     @classmethod
-    def load(cls, path=PROBLEMS_FILE):
+    def load(cls, path=PROBLEMS_FILE, extras=None):
+        """The NeetCode 250, plus any extra problems listed in the extras file.
+
+        An extra needs id (number first, like the catalog), name, topic,
+        difficulty and leetcode (its link, which need not be on LeetCode).
+        Extras are never in the 150, so with only_150 on they only come up
+        through the focus list.
+        """
         raw = json.loads(Path(path).read_text())
+        if extras and Path(extras).exists():
+            known = {r["id"] for r in raw}
+            for r in json.loads(Path(extras).read_text()):
+                if r["id"] in known:
+                    raise ValueError(f"Extra problem {r['id']} is already in the catalog.")
+                known.add(r["id"])
+                raw.append({"nc150": False, "blind75": False, "neetcode": r["leetcode"], "video": None, **r})
         return cls([Problem(order=i, **r) for i, r in enumerate(raw)])
 
     def __getitem__(self, pid):

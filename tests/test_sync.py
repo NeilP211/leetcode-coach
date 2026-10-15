@@ -6,6 +6,7 @@ import pytest
 from conftest import MON, SAT, SUN
 from leetcode_coach import planner
 from leetcode_coach import state as st
+from leetcode_coach.catalog import Catalog
 from leetcode_coach.debrief import log_attempt, skip, snooze, unrated
 from leetcode_coach.sync import render_daily, sync
 
@@ -188,6 +189,18 @@ def test_render_redo_notes(state, catalog):
     st.add_event(state, "attempt", p.id, MON, grade="again", video=True)
     _, desc = render_daily([("review", p.id, str(SUN))], catalog, st.cards(state), TUE)
     assert "redo #2, last time (Sep 28) you needed the video (rolled over from Sep 27)" in desc
+
+
+def test_render_new_problem_links(state, catalog, tmp_path):
+    _, desc = render_daily([("new", catalog.find("Car Fleet").id, str(SUN))], catalog, st.cards(state), SUN)
+    assert "([LeetCode](https://leetcode.com/problems/car-fleet/), [video](" in desc
+    extras = tmp_path / "extra_problems.json"
+    extras.write_text('[{"id": "9001-order-ledger", "name": "Order Ledger", "topic": "Arrays & Hashing", '
+                      '"difficulty": "Medium", "leetcode": "https://example.com/order-ledger"}]')
+    cat = Catalog.load(extras=extras)
+    _, desc = render_daily([("new", "9001-order-ledger", str(SUN))], cat, st.cards(state), SUN)
+    assert "[Order Ledger](https://example.com/order-ledger), Medium, Arrays & Hashing\n" in desc + "\n"
+    assert "LeetCode]" not in desc
 
 
 def test_no_mock_by_default_on_saturday(state, catalog, todoist):

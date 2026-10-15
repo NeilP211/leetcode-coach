@@ -99,9 +99,11 @@ def render_daily(items, catalog, cards, day, done_names=()):
         for _, pid, since in news:
             n += 1
             p = catalog[pid]
-            video = f", [video]({p.video}) after a real attempt" if p.video else ""
-            lines.append(f"{n}. [{p.name}]({p.neetcode}), {p.difficulty}, {p.topic}"
-                         f"{rolled(since)} ([LeetCode]({p.leetcode}){video})")
+            links = [f"[LeetCode]({p.leetcode})"] if p.leetcode != p.neetcode else []
+            if p.video:
+                links.append(f"[video]({p.video}) after a real attempt")
+            more = f" ({', '.join(links)})" if links else ""
+            lines.append(f"{n}. [{p.name}]({p.neetcode}), {p.difficulty}, {p.topic}{rolled(since)}{more}")
 
     mocks = [i for i in items if i[0] == "mock"]
     for _, pid, since in mocks:
