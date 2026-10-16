@@ -194,12 +194,14 @@ def test_render_redo_notes(state, catalog):
 def test_render_new_problem_links(state, catalog, tmp_path):
     _, desc = render_daily([("new", catalog.find("Car Fleet").id, str(SUN))], catalog, st.cards(state), SUN)
     assert "([LeetCode](https://leetcode.com/problems/car-fleet/), [video](" in desc
+    assert "no judge" not in desc
     extras = tmp_path / "extra_problems.json"
     extras.write_text('[{"id": "9001-order-ledger", "name": "Order Ledger", "topic": "Arrays & Hashing", '
                       '"difficulty": "Medium", "leetcode": "https://example.com/order-ledger"}]')
     cat = Catalog.load(extras=extras)
     _, desc = render_daily([("new", "9001-order-ledger", str(SUN))], cat, st.cards(state), SUN)
-    assert "[Order Ledger](https://example.com/order-ledger), Medium, Arrays & Hashing\n" in desc + "\n"
+    assert ("[Order Ledger](https://example.com/order-ledger), Medium, Arrays & Hashing "
+            "(no judge on that page: test your output against its examples by hand)") in desc
     assert "LeetCode]" not in desc
 
 

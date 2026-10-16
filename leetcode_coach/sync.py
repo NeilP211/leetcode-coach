@@ -102,6 +102,8 @@ def render_daily(items, catalog, cards, day, done_names=()):
             links = [f"[LeetCode]({p.leetcode})"] if p.leetcode != p.neetcode else []
             if p.video:
                 links.append(f"[video]({p.video}) after a real attempt")
+            if not any(site in p.neetcode for site in ("neetcode.io", "leetcode.com")):
+                links.append("no judge on that page: test your output against its examples by hand")
             more = f" ({', '.join(links)})" if links else ""
             lines.append(f"{n}. [{p.name}]({p.neetcode}), {p.difficulty}, {p.topic}{rolled(since)}{more}")
 
