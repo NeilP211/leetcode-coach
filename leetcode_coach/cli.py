@@ -8,7 +8,7 @@ from datetime import date
 from . import report
 from . import state as st
 from .catalog import Catalog
-from .debrief import log_attempt, skip, snooze
+from .debrief import log_attempt, pin, skip, snooze
 from .srs import GRADES
 from .sync import sync
 from .todoist import Todoist, load_token
@@ -79,6 +79,13 @@ def cmd_snooze(args, catalog):
         raise SystemExit("give --until DATE, or --clear to release it")
     with st.locked() as state:
         print(snooze(state, catalog, args.problem, until))
+    _resync(args)
+
+
+def cmd_pin(args, catalog):
+    on = None if args.clear else _date(args.date)
+    with st.locked() as state:
+        print(pin(state, catalog, args.problem, on))
     _resync(args)
 
 
@@ -245,6 +252,13 @@ def main(argv=None):
     p.add_argument("--clear", action="store_true")
     p.add_argument("--offline", action="store_true")
     p.set_defaults(fn=cmd_snooze)
+
+    p = sub.add_parser("pin", help="put a problem on the list for a given day (default today)")
+    p.add_argument("problem")
+    p.add_argument("--date")
+    p.add_argument("--clear", action="store_true")
+    p.add_argument("--offline", action="store_true")
+    p.set_defaults(fn=cmd_pin)
 
     p = sub.add_parser("status", help="today, progress by topic, what is coming")
     p.add_argument("--json", action="store_true")

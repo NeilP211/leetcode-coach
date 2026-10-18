@@ -7,7 +7,7 @@ from conftest import MON, SAT, SUN
 from leetcode_coach import planner
 from leetcode_coach import state as st
 from leetcode_coach.catalog import Catalog
-from leetcode_coach.debrief import log_attempt, skip, snooze, unrated
+from leetcode_coach.debrief import log_attempt, pin, skip, snooze, unrated
 from leetcode_coach.sync import render_daily, sync
 
 TUE = MON + timedelta(days=1)
@@ -270,6 +270,47 @@ def test_a_held_new_problem_keeps_its_place_in_the_focus_list(state, catalog, to
     log_attempt(state, catalog, first, grade="good", when=SUN)
     _, created, _ = sync(state, catalog, todoist, MON)  # the hold is over, the focus order still wins
     assert created == [("new", second)]
+
+
+def test_pin_books_a_redo_onto_its_day_ahead_of_older_ones(state, catalog, todoist):
+    seed(state, catalog, ["Two Sum", "Valid Anagram", "3Sum", "Group Anagrams"], SUN - timedelta(days=30))
+    seed(state, catalog, ["Clone Graph"], SUN, interval=10)    # not due for days
+    state["config"].update(review_per_day=2, new_per_day=0, min_new=0)
+    pid = catalog.find("Clone Graph").id
+    assert pin(state, catalog, "clone graph", MON) == f"pinned Clone Graph to {MON}"
+    sync(state, catalog, todoist, SUN)
+    assert "Clone Graph" not in only_task(todoist)["description"]
+    assert state["pins"] == {pid: str(MON)}
+    _, created, _ = sync(state, catalog, todoist, MON)
+    assert created[0] == ("review", pid)
+    assert state["pins"] == {}                                 # used up once it is on a list
+    _, created, _ = sync(state, catalog, todoist, TUE)
+    assert ("review", pid) not in created
+
+
+def test_pins_past_the_days_slots_get_extra_slots(state, catalog, todoist):
+    names = ["Two Sum", "Valid Anagram", "3Sum"]
+    seed(state, catalog, names, SUN - timedelta(days=30))
+    state["config"].update(review_per_day=1, new_per_day=1, min_new=1)
+    for n in names:
+        pin(state, catalog, n, SUN)
+    targets, created, _ = sync(state, catalog, todoist, SUN)
+    assert sorted(pid for kind, pid in created if kind == "review") == sorted(catalog.find(n).id for n in names)
+    assert targets["review"] == 3 and [k for k, _ in created].count("new") == 1
+
+
+def test_pin_ends_a_snooze_and_waits_through_a_dry_run(state, catalog, todoist):
+    seed(state, catalog, ["Two Sum"], SUN - timedelta(days=30))
+    snooze(state, catalog, "two sum", TUE)
+    pin(state, catalog, "two sum", MON)
+    assert state["snooze"] == {}
+    sync(state, catalog, todoist, MON, dry_run=True)
+    assert state["pins"] == {catalog.find("Two Sum").id: str(MON)}
+    assert pin(state, catalog, "two sum") == "unpinned: Two Sum"
+    assert state["pins"] == {}
+    pin(state, catalog, "two sum", MON)
+    snooze(state, catalog, "two sum", TUE)                     # the newer ask wins
+    assert state["pins"] == {}
 
 
 def test_snooze_clear_releases_it(state, catalog):

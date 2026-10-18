@@ -47,6 +47,7 @@ New
   NeetCode gets a note on the daily task that there is no judge, so you check your output by hand.
 - **Pause:** `lc config pause_until 2026-10-08` stops new lists and rollovers until that day (the open task just moves to it). `lc config pause_until off` ends it early.
 - **Snooze:** `lc snooze "lru" --until 2026-10-08` holds one problem off the daily lists until a date (say, after an interview). It comes back as a normal redo then. A new problem you had not solved yet comes back as the next new problem.
+- **Pin:** `lc pin "clone graph" --date 2026-10-19` books a problem onto that day's list, ahead of the planner's own picks. If the day is already full it gets an extra slot. Without `--date` it goes on today's list. `--clear` drops the booking.
 - **Checking the task off** records every problem on it as done. `lc skip` puts back one I didn't
   actually get to. If I don't check it off, tomorrow's task is the same task, rewritten with
   today's leftovers plus whatever slots are still free. When more carried over than the day has
@@ -113,6 +114,7 @@ lc log "koko" -g again -v -m 45 -i "binary search on the answer, check feasibili
 lc log 146 -g good         problems resolve by name, fuzzy name, or LeetCode number
 lc skip "lru"              checked the day off but didn't do this one: back on the list
 lc snooze "lru" --until 2026-10-08   hold a problem off the lists until that date (--clear releases it)
+lc pin "clone graph" --date 2026-10-19   put a problem on that day's list (--clear drops it)
 lc more 1                  one more new problem today
 lc more 2 --redo           two more redos today (soonest due, skipping anything done in the last 2 days)
 lc show "lru cache"        history and saved insight for one problem

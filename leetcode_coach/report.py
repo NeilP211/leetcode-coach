@@ -84,6 +84,8 @@ def status_data(state, catalog, today):
             sum(1 for c in cards.values() if c.seen),
             bool(state["config"].get("only_150")), st.queue_front(state, today))[:5]],
         "interview": st.next_interview(state, today),
+        "pins": {catalog[pid].name: on for pid, on in sorted(state.get("pins", {}).items(),
+                                                             key=lambda kv: (kv[1], kv[0]))},
         "topics": topic_rows(catalog, cards),
         "config": state["config"],
     }
@@ -111,6 +113,8 @@ def status_text(data):
     if data["due_next_7_days"]:
         out.append("redos coming up: " + ", ".join(
             f"{k[5:]}: {v}" for k, v in data["due_next_7_days"].items()))
+    if data["pins"]:
+        out.append("pinned: " + ", ".join(f"{name} ({on[5:]})" for name, on in data["pins"].items()))
     if data["next_new"]:
         out.append("next new: " + ", ".join(data["next_new"]))
     if s["weak"]:

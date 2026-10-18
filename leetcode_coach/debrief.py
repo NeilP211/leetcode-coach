@@ -93,10 +93,27 @@ def snooze(state, catalog, query, until=None):
         held.pop(problem.id, None)
         return f"released: {problem.name}"
     held[problem.id] = str(until)
+    state.get("pins", {}).pop(problem.id, None)  # the newer ask wins
     for a in st.open_assignments(state).values():
         if a["problem"] == problem.id:
             a["status"] = "snoozed"
     return f"holding back {problem.name} until {until}"
+
+
+def pin(state, catalog, query, on=None):
+    """Book a problem onto the list for a given day (None clears the booking).
+
+    On that day it goes on ahead of the planner's own picks, adding a slot if
+    the day is already full. Pinning ends any snooze on it.
+    """
+    problem = catalog.find(query)
+    pins = state.setdefault("pins", {})
+    if on is None:
+        pins.pop(problem.id, None)
+        return f"unpinned: {problem.name}"
+    pins[problem.id] = str(on)
+    state.get("snooze", {}).pop(problem.id, None)
+    return f"pinned {problem.name} to {on}"
 
 
 def unrated(state, catalog, since_days=7, today=None):

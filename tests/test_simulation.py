@@ -15,7 +15,7 @@ import pytest
 from conftest import SUN, FakeTodoist
 from leetcode_coach import planner
 from leetcode_coach import state as st
-from leetcode_coach.debrief import log_attempt, skip, snooze
+from leetcode_coach.debrief import log_attempt, pin, skip, snooze
 from leetcode_coach.srs import GRADES
 from leetcode_coach.sync import sync
 
@@ -59,6 +59,7 @@ def checked_sync(state, catalog, todoist, day, extra_new=0, extra_review=0, twic
     assert len(problems) == len(set(problems))          # never the same problem twice
     assert all(aid in listed for aid in still_open)     # nothing open is left off today
     assert not held_back(state, day) & set(problems)    # a held problem stays off the list
+    assert all(on > str(day) for on in state.get("pins", {}).values())  # a due pin is on the list
     for aid in made:
         if A[aid]["kind"] == "new":
             assert A[aid]["problem"] not in seen_before  # new means never solved
@@ -140,6 +141,8 @@ def test_random_weeks_never_overfill_a_day(catalog, seed):
             snooze(state, catalog, rng.choice(todo)["problem"], day + timedelta(days=rng.randint(1, 4)))
         elif task and did < 0.77:
             todoist.delete(task)
+        elif did < 0.82:                    # books a problem for today or a later day
+            pin(state, catalog, rng.choice(catalog.problems).id, day + timedelta(days=rng.randint(0, 3)))
         # anything else is a day off: it all rolls over
 
         if rng.random() < 0.3 and not str(day) < (cfg["pause_until"] or ""):

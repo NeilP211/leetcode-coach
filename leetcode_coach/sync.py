@@ -194,6 +194,15 @@ def plan_today(state, catalog, today, extra_new=0, extra_review=0):
     intro = sum(1 for c in cards.values() if c.seen)
     only_150 = bool(state["config"].get("only_150"))
     adds = []
+    # Pinned problems go on first and take the day's slots, or add slots when the day is full.
+    for pid, on in sorted(state.get("pins", {}).items(), key=lambda kv: (kv[1], kv[0])):
+        if on > str(today) or pid in busy:
+            continue
+        kind = "review" if pid in cards and cards[pid].seen else "new"
+        adds.append((kind, pid))
+        busy.add(pid)
+        have[kind] += 1
+        t[kind] = max(t[kind], have[kind])
     for pid in planner.pick_reviews(cards, today, t["review"] - have["review"], busy, cram,
                                     early=extra_review > 0):
         adds.append(("review", pid))
@@ -294,6 +303,11 @@ def sync(state, catalog, client, today=None, extra_new=0, dry_run=False, extra_r
             state["days"][str(today)]["assignments"].append(aid)
             log.append(f"added {kind}: {catalog[pid].name}")
     if not dry_run:
+        # a pin is used up once its problem is on a list (added now, or already there)
+        on_list = {a["problem"] for a in st.open_assignments(state).values()}
+        pins = state.get("pins", {})
+        for pid in [p for p, on in pins.items() if on <= str(today) and p in on_list]:
+            del pins[pid]
         log += publish(state, catalog, client, today, force_today=extra_new + extra_review > 0)
         st.prune_days(state, today)
     return targets, created, log
